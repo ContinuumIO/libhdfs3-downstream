@@ -1,0 +1,3 @@
+[submodule "incubator-hawq"]
+	path = incubator-hawq
+	url = https://github.com/apache/incubator-hawq.git
