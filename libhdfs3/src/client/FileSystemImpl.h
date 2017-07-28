@@ -210,6 +210,15 @@ public:
     bool rename(const char * src, const char * dst);
 
     /**
+     * To move blocks from a list of source files to a new target
+     * file
+     * @param trg pathname of new file
+     * @param srcs NULL pointer terminated list of source files
+     * @return return true if success.
+     */
+    void concat(const char * trg, const char ** srcs);
+
+    /**
      * To set working directory.
      * @param path new working directory.
      */

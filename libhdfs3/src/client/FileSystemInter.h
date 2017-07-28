@@ -216,6 +216,14 @@ public:
     virtual bool rename(const char * src, const char * dst) = 0;
 
     /**
+     * To move blocks from set of source files to a new target file.
+     * @param trg target file name
+     * @param srcs NULL pointer terminated list of source files
+     * @return return true if success.
+     */
+    virtual void concat(const char * trg, const char ** srcs) = 0;
+
+    /**
      * To set working directory.
      * @param path new working directory.
      */

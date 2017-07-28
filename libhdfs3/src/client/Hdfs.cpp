@@ -921,6 +921,26 @@ int hdfsRename(hdfsFS fs, const char * oldPath, const char * newPath) {
     return -1;
 }
 
+int hdfsConcat(hdfsFS fs, const char *trg, const char **srcs) {
+    PARAMETER_ASSERT(fs && trg && srcs && strlen(trg) > 0, -1, EINVAL);
+    for (const char **p = srcs; *p != NULL; ++p) {
+        PARAMETER_ASSERT(strlen(*p) > 0, -1, EINVAL);
+    }
+
+    try {
+        fs->getFilesystem().concat(trg, srcs);
+        return 0;
+    } catch (const std::bad_alloc & e) {
+        SetErrorMessage("Out of memory");
+        errno = ENOMEM;
+    } catch (...) {
+        SetLastException(Hdfs::current_exception());
+        handleException(Hdfs::current_exception());
+    }
+
+    return -1;
+}
+
 char * hdfsGetWorkingDirectory(hdfsFS fs, char * buffer, size_t bufferSize) {
     PARAMETER_ASSERT(fs && buffer && bufferSize > 0, NULL, EINVAL);
 

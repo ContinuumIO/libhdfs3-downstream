@@ -844,6 +844,62 @@ TEST_F(TestCInterface, TestRename_Success) {
     EXPECT_EQ(0, err);
 }
 
+TEST_F(TestCInterface, TestConcat_InvalidInput) {
+    hdfsFile file = NULL;
+    int err;
+    file = hdfsOpenFile(fs, BASE_DIR"/testFileConcatSrc", O_WRONLY, 0, 0, 0);
+    ASSERT_TRUE(NULL != file);
+    EXPECT_EQ(0, hdfsCloseFile(fs, file));
+    //test invalid input
+    const char *srcs[2];
+    srcs[0] = BASE_DIR"/testFileConcatSrc";
+    srcs[1] = NULL;
+    // Test invalid inputs
+    err = hdfsConcat(NULL, BASE_DIR"/testFileConcatTrg", &srcs[0]);
+    EXPECT_TRUE(0 != err && EINVAL == errno);
+    err = hdfsConcat(fs, NULL, &srcs[0]);
+    EXPECT_TRUE(0 != err && EINVAL == errno);
+    err = hdfsConcat(fs, "", &srcs[0]);
+    EXPECT_TRUE(0 != err && EINVAL == errno);
+    err = hdfsConcat(fs, BASE_DIR"/testFileConcatTrg", NULL);
+    EXPECT_TRUE(0 != err && EINVAL == errno);
+    srcs[0] = "";
+    err = hdfsConcat(fs, BASE_DIR"/testFileConcatTrg", &srcs[0]);
+    EXPECT_TRUE(0 != err && EINVAL == errno);
+}
+
+TEST_F(TestCInterface, TestConcat_Success) {
+    hdfsFile file = NULL;
+    int err;
+    const char *srcs[2];
+    char inputBuffer[8];
+    file = hdfsOpenFile(fs, BASE_DIR"/testFileConcatSrc",
+			O_WRONLY|O_CREAT|O_TRUNC, 0, 0, 0);
+    ASSERT_TRUE(NULL != file);
+    EXPECT_TRUE(4 == hdfsWrite(fs, file, "abcd", 4));
+    EXPECT_EQ(0, hdfsCloseFile(fs, file));
+    file = hdfsOpenFile(fs, BASE_DIR"/testFileConcatTrg",
+			O_WRONLY|O_CREAT|O_TRUNC, 0, 0, 0);
+    ASSERT_TRUE(NULL != file);
+    EXPECT_EQ(0, hdfsCloseFile(fs, file));
+    // concatenate a file
+    srcs[0] = BASE_DIR"/testFileConcatSrc";
+    srcs[1] = NULL;
+    err = hdfsConcat(fs, BASE_DIR"/testFileConcatTrg", srcs);
+    EXPECT_EQ(0, err);
+    err = hdfsExists(fs, BASE_DIR"/testFileConcatTrg");
+    EXPECT_EQ(0, err);
+    err = hdfsExists(fs, BASE_DIR"/testFileConcatSrc");
+    EXPECT_TRUE(0 != err);
+    file = hdfsOpenFile(fs, BASE_DIR"/testFileConcatTrg",
+			O_RDONLY, 0, 0, 0);
+    ASSERT_TRUE(NULL != file);
+    EXPECT_EQ(4, hdfsRead(fs, file, inputBuffer, 8));
+    inputBuffer[4] = '\0';
+    EXPECT_EQ(0, strcmp("abcd", inputBuffer));
+    EXPECT_EQ(0, hdfsCloseFile(fs, file));
+}
+
 TEST_F(TestCInterface, TestGetWorkingDirectory_InvalidInput) {
     char * ret, buffer[1024];
     //test invalid input
