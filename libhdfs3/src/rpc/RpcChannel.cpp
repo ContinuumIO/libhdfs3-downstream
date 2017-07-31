@@ -567,6 +567,11 @@ void RpcChannelImpl::checkOneResponse() {
     }
 }
 
+void RpcChannelImpl::Ping() {
+    unique_lock<mutex> lock(writeMut);
+    sendPing();
+}
+
 void RpcChannelImpl::sendPing() {
     static const std::vector<char> pingRequest = RpcRemoteCall::GetPingRequest(client.getClientId());
 

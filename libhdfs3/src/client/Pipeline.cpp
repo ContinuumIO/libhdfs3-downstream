@@ -28,6 +28,7 @@
 #include "FileSystemInter.h"
 #include "DataTransferProtocolSender.h"
 #include "datatransfer.pb.h"
+#include "server/Datanode.h"
 
 #include <inttypes.h>
 
@@ -39,8 +40,9 @@ PipelineImpl::PipelineImpl(bool append, const char * path, const SessionConfig &
                            int replication, int64_t bytesSent, PacketPool & packetPool, shared_ptr<LocatedBlock> lastBlock) :
     checksumType(checksumType), chunkSize(chunkSize), errorIndex(-1), replication(replication), bytesAcked(
         bytesSent), bytesSent(bytesSent), packetPool(packetPool), filesystem(filesystem), lastBlock(lastBlock), path(
-            path) {
+            path), config(conf) {
     canAddDatanode = conf.canAddDatanode();
+    canAddDatanodeBest = conf.canAddDatanodeBest();
     blockWriteRetry = conf.getBlockWriteRetry();
     connectTimeout = conf.getOutputConnTimeout();
     readTimeout = conf.getOutputReadTimeout();
@@ -193,8 +195,12 @@ void PipelineImpl::buildForAppendOrRecovery(bool recovery) {
     int retry = blockWriteRetry;
     exception_ptr lastException;
     std::vector<DatanodeInfo> excludedNodes;
+    std::vector<DatanodeInfo> empty;
     shared_ptr<LocatedBlock> lb;
     std::string buffer;
+    DatanodeInfo removed;
+    std::string storageID;
+    bool useRemoved = false;
 
     do {
         /*
@@ -202,20 +208,46 @@ void PipelineImpl::buildForAppendOrRecovery(bool recovery) {
          * If errorIndex was not set (i.e. appends), then do not remove
          * any datanodes
          */
+        useRemoved = false;
+        storageID = "";
         if (errorIndex >= 0) {
             assert(lastBlock);
-            LOG(LOG_ERROR, "Pipeline: node %s is invalid and removed from pipeline when %s block %s for file %s, stage = %s.",
-                nodes[errorIndex].formatAddress().c_str(),
-                (recovery ? "recovery" : "append to"), lastBlock->toString().c_str(),
-                path.c_str(), StageToString(stage));
-            excludedNodes.push_back(nodes[errorIndex]);
+            bool invalid = true;
+            LOG(LOG_ERROR, "Pipeline: node %s had error. Trying to ping to test if valid.",
+                nodes[errorIndex].formatAddress().c_str());
+            try {
+                RpcAuth a = RpcAuth(filesystem->getUserInfo(), RpcAuth::ParseMethod(config.getRpcAuthMethod()));
+                shared_ptr<Datanode> dn = shared_ptr < Datanode > (new DatanodeImpl(nodes[errorIndex].getIpAddr().c_str(),
+                                              nodes[errorIndex].getIpcPort(), config, a));
+                dn->sendPing();
+                invalid = false;
+                LOG(INFO, "Pipeline: node %s was able to ping. Will continue to use.",
+                    nodes[errorIndex].formatAddress().c_str());
+                removed = nodes[errorIndex];
+                if (errorIndex < storageIDs.size())
+                    storageID = storageIDs[errorIndex];
+                useRemoved = true;
+            }
+            catch (...) {
+            }
+            if (invalid) {
+                /*
+                 * If node was pingable, don't exclude it, but do remove it for now. We will then
+                 * be able to add it back later.
+                */
+                LOG(LOG_ERROR, "Pipeline: node %s is invalid and removed from pipeline when %s block %s for file %s, stage = %s.",
+                    nodes[errorIndex].formatAddress().c_str(),
+                    (recovery ? "recovery" : "append to"), lastBlock->toString().c_str(),
+                    path.c_str(), StageToString(stage));
+                excludedNodes.push_back(nodes[errorIndex]);
+            }
             nodes.erase(nodes.begin() + errorIndex);
 
             if (!storageIDs.empty()) {
                 storageIDs.erase(storageIDs.begin() + errorIndex);
             }
 
-            if (nodes.empty()) {
+            if (nodes.empty() && invalid) {
                 THROW(HdfsIOException,
                       "Build pipeline to %s block %s failed: all datanodes are bad.",
                       (recovery ? "recovery" : "append to"), lastBlock->toString().c_str());
@@ -233,12 +265,40 @@ void PipelineImpl::buildForAppendOrRecovery(bool recovery) {
              */
             if (stage != PIPELINE_SETUP_CREATE && stage != PIPELINE_CLOSE
                     && static_cast<int>(nodes.size()) < replication && canAddDatanode) {
-                if (!addDatanodeToPipeline(excludedNodes)) {
-                    THROW(HdfsIOException,
-                          "Failed to add new datanode into pipeline for block: %s file %s, "
-                          "set \"output.replace-datanode-on-failure\" to \"false\" to disable this feature.",
-                          lastBlock->toString().c_str(), path.c_str());
+                // Single data node case
+                bool added = false;
+                if (nodes.empty() && useRemoved) {
+                    if (storageID.length()) {
+                        LOG(INFO, "Pipeline: Adding back only datanode %s", removed.formatAddress().c_str());
+                        nodes.push_back(removed);
+                        lb = filesystem->updateBlockForPipeline(*lastBlock);
+                        storageIDs.push_back(storageID);
+                        lb->setPoolId(lastBlock->getPoolId());
+                        lb->setBlockId(lastBlock->getBlockId());
+                        lb->setLocations(nodes);
+                        lb->setStorageIDs(storageIDs);
+                        lb->setNumBytes(lastBlock->getNumBytes());
+                        lb->setOffset(lastBlock->getOffset());
+                        filesystem->updatePipeline(*lastBlock, *lb, nodes, storageIDs);
+                        added = true;
+                    }
                 }
+                if (!added && !addDatanodeToPipeline(excludedNodes)) {
+
+                    // We may have remove nodes due to timeout, try again, but allow for
+                    // excluded ones to be added back
+                    if (!addDatanodeToPipeline(empty) && !canAddDatanodeBest) {
+                        THROW(HdfsIOException,
+                              "Failed to add new datanode into pipeline for block: %s file %s, "
+                              "set \"output.replace-datanode-on-failure\" to \"false\" to disable this feature.",
+                              lastBlock->toString().c_str(), path.c_str());
+                    }
+                }
+            }
+            if (nodes.empty()) {
+                THROW(HdfsIOException,
+                      "Build pipeline to %s block failed: all datanodes are bad.",
+                      (recovery ? "recovery" : "append to"));
             }
 
             if (errorIndex >= 0) {
