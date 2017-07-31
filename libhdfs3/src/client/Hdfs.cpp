@@ -993,6 +993,25 @@ int hdfsCreateDirectory(hdfsFS fs, const char * path) {
     return -1;
 }
 
+int hdfsCreateDirectoryEx(hdfsFS fs, const char * path, short mode, int createParents) {
+    PARAMETER_ASSERT(fs && path && strlen(path) > 0, -1, EINVAL);
+
+    try {
+        if (createParents)
+            return fs->getFilesystem().mkdirs(path, mode) ? 0 : -1;
+        else
+            return fs->getFilesystem().mkdir(path, mode) ? 0 : -1;
+    } catch (const std::bad_alloc & e) {
+        SetErrorMessage("Out of memory");
+        errno = ENOMEM;
+    } catch (...) {
+        SetLastException(Hdfs::current_exception());
+        handleException(Hdfs::current_exception());
+    }
+
+    return -1;
+}
+
 int hdfsSetReplication(hdfsFS fs, const char * path, int16_t replication) {
     PARAMETER_ASSERT(fs && path && strlen(path) > 0 && replication > 0, -1, EINVAL);
 
