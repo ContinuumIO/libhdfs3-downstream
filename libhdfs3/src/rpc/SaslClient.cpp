@@ -33,7 +33,9 @@ namespace Internal {
 
 SaslClient::SaslClient(const RpcSaslProto_SaslAuth & auth, const Token & token,
                        const std::string & principal) :
-    complete(false) {
+     complete(false), changeLength(false),
+     privacy(false), integrity(false),
+     theAuth(auth), theToken(token), thePrincipal(principal)  {
     int rc;
     ctx = NULL;
     RpcAuth method = RpcAuth(RpcAuth::ParseMethod(auth.method()));
@@ -61,12 +63,15 @@ SaslClient::SaslClient(const RpcSaslProto_SaslAuth & auth, const Token & token,
 SaslClient::~SaslClient() {
     if (session != NULL) {
         gsasl_finish(session);
+        session = NULL;
     }
 
     if (ctx != NULL) {
         gsasl_done(ctx);
+        ctx = NULL;
     }
 }
+
 
 void SaslClient::initKerberos(const RpcSaslProto_SaslAuth & auth,
                               const std::string & principal) {
@@ -81,6 +86,7 @@ void SaslClient::initKerberos(const RpcSaslProto_SaslAuth & auth,
     gsasl_property_set(session, GSASL_SERVICE, auth.protocol().c_str());
     gsasl_property_set(session, GSASL_AUTHID, principal.c_str());
     gsasl_property_set(session, GSASL_HOSTNAME, auth.serverid().c_str());
+
 }
 
 std::string Base64Encode(const std::string & in) {
@@ -119,7 +125,20 @@ void SaslClient::initDigestMd5(const RpcSaslProto_SaslAuth & auth,
     gsasl_property_set(session, GSASL_AUTHID, identifier.c_str());
     gsasl_property_set(session, GSASL_HOSTNAME, auth.serverid().c_str());
     gsasl_property_set(session, GSASL_SERVICE, auth.protocol().c_str());
+    changeLength = true;
+
 }
+
+int SaslClient::findPreferred(int possible) {
+    if (possible & GSASL_QOP_AUTH)
+        return GSASL_QOP_AUTH;
+    if (possible & GSASL_QOP_AUTH_INT)
+        return GSASL_QOP_AUTH_INT;
+    if (possible & GSASL_QOP_AUTH_CONF)
+        return GSASL_QOP_AUTH_CONF;
+    return GSASL_QOP_AUTH;
+}
+
 
 std::string SaslClient::evaluateChallenge(const std::string & challenge) {
     int rc;
@@ -128,6 +147,15 @@ std::string SaslClient::evaluateChallenge(const std::string & challenge) {
     std::string retval;
     rc = gsasl_step(session, &challenge[0], challenge.size(), &output,
                     &outputSize);
+    RpcAuth method = RpcAuth(RpcAuth::ParseMethod(theAuth.method()));
+    if (rc == GSASL_GSSAPI_INIT_SEC_CONTEXT_ERROR && method.getMethod() == AuthMethod::KERBEROS) {
+        // Try again using principal instead
+        gsasl_finish(session);
+        initKerberos(theAuth, thePrincipal);
+        gsasl_property_set(session, GSASL_GSSAPI_DISPLAY_NAME, thePrincipal.c_str());
+        rc = gsasl_step(session, &challenge[0], challenge.size(), &output,
+                    &outputSize);
+    }
 
     if (rc == GSASL_NEEDS_MORE || rc == GSASL_OK) {
         retval.resize(outputSize);
@@ -146,13 +174,102 @@ std::string SaslClient::evaluateChallenge(const std::string & challenge) {
 
     if (rc == GSASL_OK) {
         complete = true;
+        int preferred = 0;
+        if (method.getMethod() == AuthMethod::TOKEN) {
+            const char *qop = gsasl_property_get (session, GSASL_QOP);
+            if (qop)
+                preferred = qop[0];
+        }
+        else if (challenge.length()) {
+            std::string decoded = decode(challenge.c_str(), challenge.length());
+            int qop = (int)decoded.c_str()[0];
+            preferred = findPreferred(qop);
+        }
+        if (preferred & GSASL_QOP_AUTH_CONF) {
+            privacy = true;
+            integrity = true;
+        } else if (preferred & GSASL_QOP_AUTH_INT) {
+            integrity = true;
+        }
     }
 
     return retval;
 }
 
+std::string SaslClient::encode(const char *input, size_t input_len) {
+    std::string result;
+    if ((!privacy && !integrity) || (!complete)) {
+        result.resize(input_len);
+        memcpy(&result[0], input, input_len);
+        return result;
+    }
+
+    char *output=NULL;
+    size_t output_len;
+    int rc = gsasl_encode(session, input, input_len, &output, &output_len);
+    if (rc != GSASL_OK) {
+        THROW(AccessControlException, "Failed to encode wrapped data: %s", gsasl_strerror(rc));
+    }
+    if (output_len) {
+
+        if (output_len > 4 && changeLength) {
+            result.resize(output_len-4);
+            memcpy(&result[0], output+4, output_len-4);
+        } else {
+            result.resize(output_len);
+            memcpy(&result[0], output, output_len);
+        }
+        free(output);
+    }
+    return result;
+}
+
+std::string  SaslClient::decode(const char *input, size_t input_len) {
+    std::string result;
+    if ((!privacy && !integrity) || (!complete)) {
+        result.resize(input_len);
+        memcpy(&result[0], input, input_len);
+        return result;
+    }
+    char *output=NULL;
+    size_t output_len;
+    std::string actualInput;
+    if (changeLength) {
+        actualInput.resize(input_len+4);
+        actualInput[0] = (input_len>> 24) & 0xFF;
+        actualInput[1] = (input_len >> 16) & 0xFF;
+        actualInput[2] = (input_len >> 8) & 0xFF;
+        actualInput[3] = input_len & 0xFF;
+        memcpy(&actualInput[4], input, input_len);
+
+    } else {
+        actualInput.resize(input_len);
+        memcpy(&actualInput[0], input, input_len);
+    }
+    int rc = gsasl_decode(session, actualInput.c_str(), actualInput.length(), &output, &output_len);
+    if (rc != GSASL_OK) {
+        THROW(AccessControlException, "Failed to decode wrapped data: %s", gsasl_strerror(rc));
+    }
+    if (output_len) {
+        result.resize(output_len);
+        memcpy(&result[0], output, output_len);
+        free(output);
+    }
+
+    return result;
+}
+
+
 bool SaslClient::isComplete() {
     return complete;
+}
+
+bool SaslClient::isPrivate() {
+    return privacy;
+}
+
+bool SaslClient::isIntegrity() {
+    return integrity;
 }
 
 }

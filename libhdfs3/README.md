@@ -24,7 +24,8 @@ To build libhdfs3, the following libraries are needed.
     libxml2                         http://www.xmlsoft.org/
     kerberos                        http://web.mit.edu/kerberos/
     libuuid                         http://sourceforge.net/projects/libuuid/
-    libgsasl                        http://www.gnu.org/software/gsasl/
+    libgsasl                        http://www.gnu.org/software/gsasl/ (need https://github.com/bdrosen96/libgsasl)
+    openssl                         https://www.openssl.org/
 
 To run tests, the following libraries are needed.
 
