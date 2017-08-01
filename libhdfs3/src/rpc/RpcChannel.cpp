@@ -236,16 +236,6 @@ std::string RpcChannelImpl::saslEvaluateToken(RpcSaslProto & response, bool serv
     return token;
 }
 
-void spin(const char* strname) {
-    bool stop = false;
-
-    while (!stop) {
-        if (access(strname, F_OK) != 0)
-            break;
-        ::sleep(1);
-    }
-
-}
 
 RpcAuth RpcChannelImpl::setupSaslConnection() {
     RpcAuth retval;
@@ -887,9 +877,52 @@ void RpcChannelImpl::readOneResponse(bool writeLock) {
               "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel cannot parse response header.",
               key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
     }
-
     lastActivity = steady_clock::now();
 
+    // We might have error outside of SASL wrapper as well as inside, so check twice
+    status = curRespHeader.status();
+    if (RpcResponseHeaderProto_RpcStatusProto_SUCCESS != status) {
+        /*
+         * on error, read error class and message
+         */
+        std::string errClass, errMessage;
+        errClass = curRespHeader.exceptionclassname();
+        errMessage = curRespHeader.errormsg();
+
+        if (RpcResponseHeaderProto_RpcStatusProto_ERROR == status) {
+            RpcRemoteCallPtr rc;
+            {
+                lock_guard<mutex> lock(writeMut);
+                rc = getPendingCall(curRespHeader.callid());
+            }
+
+            try {
+                THROW(HdfsRpcServerException, "%s: %s",
+                      errClass.c_str(), errMessage.c_str());
+            } catch (HdfsRpcServerException & e) {
+                e.setErrClass(errClass);
+                e.setErrMsg(errMessage);
+                rc->cancel(HandlerRpcResponseException(current_exception()));
+            }
+        } else { /*fatal*/
+            assert(RpcResponseHeaderProto_RpcStatusProto_FATAL == status);
+
+            if (errClass.empty()) {
+                THROW(HdfsRpcException, "%s: %s",
+                      errClass.c_str(), errMessage.c_str());
+            }
+
+            try {
+                THROW(HdfsRpcServerException, "%s: %s", errClass.c_str(),
+                      errMessage.c_str());
+            } catch (HdfsRpcServerException & e) {
+                e.setErrClass(errClass);
+                e.setErrMsg(errMessage);
+                rethrow_exception(HandlerRpcResponseException(current_exception()));
+            }
+        }
+        return;
+    }
     bodySize = in->readVarint32(readTimeout);
 
     if (bodySize > 0) {
