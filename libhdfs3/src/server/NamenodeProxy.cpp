@@ -333,14 +333,12 @@ bool NamenodeProxy::rename(const std::string & src, const std::string & dst) {
     return false;
 }
 
-/*
 void NamenodeProxy::concat(const std::string & trg,
                            const std::vector<std::string> & srcs) {
     NAMENODE_HA_RETRY_BEGIN();
     namenode->concat(trg, srcs);
     NAMENODE_HA_RETRY_END();
 }
-*/
 
 bool NamenodeProxy::truncate(const std::string & src, int64_t size,
                              const std::string & clientName) {

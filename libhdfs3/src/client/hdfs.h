@@ -445,6 +445,20 @@ int hdfsDelete(hdfsFS fs, const char * path, int recursive);
 int hdfsRename(hdfsFS fs, const char * oldPath, const char * newPath);
 
 /**
+ * hdfsConcat - Concatenate (move) the blocks in a list of source
+ * files into a single file deleting the source files.  Source
+ * files must all have the same block size and replicationand all
+ * but the last source file must be an integer number of full
+ * blocks long.  The source files are deleted on successful
+ * completion.
+ * @param fs The configured filesystem handle.
+ * @param trg The path of target (resulting) file
+ * @param scrs A list of paths to source files
+ * @return Returns 0 on success, -1 on error.
+ */
+int hdfsConcat(hdfsFS fs, const char * trg, const char ** srcs);
+
+/**
  * hdfsGetWorkingDirectory - Get the current working directory for
  * the given filesystem.
  * @param fs The configured filesystem handle.
@@ -471,6 +485,16 @@ int hdfsSetWorkingDirectory(hdfsFS fs, const char * path);
  * @return Returns 0 on success, -1 on error.
  */
 int hdfsCreateDirectory(hdfsFS fs, const char * path);
+
+/**
+ * hdfsCreateDirectoryEx - Make the given file with extended options
+ * @param fs The configured filesystem handle.
+ * @param path The path of the directory.
+ * @param mode The permissions for created file and directories.
+ * @param createParents Controls whether to create all non-existent parent directories or not
+ * @return Returns 0 on success, -1 on error.
+ */
+int hdfsCreateDirectoryEx(hdfsFS fs, const char * path, short mode, int createParents);
 
 /**
  * hdfsSetReplication - Set the replication of the specified

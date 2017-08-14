@@ -32,6 +32,7 @@
 #include "XmlConfig.h"
 
 #include <ctime>
+#include <string.h>
 
 #ifndef TEST_HDFS_PREFIX
 #define TEST_HDFS_PREFIX "./"
@@ -102,6 +103,19 @@ TEST_F(TestFileSystem, rename) {
     ASSERT_THROW(fs->rename(NULL, "retest"), InvalidParameter);
     ASSERT_THROW(fs->rename("/test1/testa", NULL), InvalidParameter);
     ASSERT_THROW(fs->rename(NULL, NULL), InvalidParameter);
+}
+
+TEST_F(TestFileSystem, concat) {
+    const char *srcs[2];
+    srcs[0] = "";
+    srcs[1] = NULL;
+    ASSERT_THROW(fs->concat("/test1/testa", NULL), InvalidParameter);
+    ASSERT_THROW(fs->concat("/test1/testa", &srcs[0]), InvalidParameter);
+    srcs[0] = "concat_test";
+    ASSERT_THROW(fs->concat(NULL, &srcs[0]), InvalidParameter);
+    ASSERT_THROW(fs->concat(NULL, NULL), InvalidParameter);
+    srcs[0] = "";
+    ASSERT_THROW(fs->concat(NULL, &srcs[0]), InvalidParameter);
 }
 
 TEST_F(TestFileSystem, getDefaultReplication) {

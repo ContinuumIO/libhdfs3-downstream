@@ -60,6 +60,7 @@ public:
   MOCK_METHOD2(setPermission, void(const char * path, const Hdfs::Permission &));
   MOCK_METHOD2(setReplication, bool(const char * path, short replication));
   MOCK_METHOD2(rename, bool(const char * src, const char * dst));
+  MOCK_METHOD2(concat, void(const char * trg, const char ** srcs));
   MOCK_METHOD1(setWorkingDirectory, void(const char * path));
   MOCK_CONST_METHOD0(getWorkingDirectory, std::string());
   MOCK_METHOD1(exist, bool(const char * path));

@@ -468,6 +468,20 @@ bool FileSystem::rename(const char * src, const char * dst) {
 }
 
 /**
+ * To move blocks from a list of files to a new file.
+ * @param trg new file path
+ * @param srcs list of source files
+ * @return return true if success.
+ */
+void FileSystem::concat(const char * trg, const char **srcs) {
+    if (!impl) {
+        THROW(HdfsIOException, "FileSystem: not connected.");
+    }
+
+    impl->filesystem->concat(trg, srcs);
+}
+
+/**
  * To set working directory.
  * @param path new working directory.
  */

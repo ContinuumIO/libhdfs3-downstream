@@ -358,15 +358,15 @@ public:
     /**
      * Moves blocks from srcs to trg and delete srcs
      *
-     * @param trg existing file
+     * @param trg target (resulting) file
      * @param srcs - list of existing files (same block size, same replication)
      * @throw HdfsIOException if some arguments are invalid
      * @throw UnresolvedLinkException if <code>trg</code> or <code>srcs</code>
-     *           contains a symlink
+     *        contains a symlink
      */
-    /*    virtual void concat(const std::string & trg,
-                            const std::vector<std::string> & srcs)  throw (HdfsIOException,
-                 UnresolvedLinkException)  = 0;*/
+    virtual void concat(const std::string & trg,
+                            const std::vector<std::string> & srcs)
+    /* throw (HdfsIOException, UnresolvedLinkException) */ = 0;
 
     /**
      * Truncate a file to the indicated length

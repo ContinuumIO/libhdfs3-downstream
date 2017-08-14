@@ -75,6 +75,8 @@ public:
     virtual void getBlockLocalPathInfo(const ExtendedBlock & block,
                                        const Token & token, BlockLocalPathInfo & info)
     /*throw (HdfsIOException)*/ = 0;
+
+    virtual void sendPing() = 0;
 };
 
 class DatanodeImpl: public Datanode {
@@ -86,6 +88,8 @@ public:
 
     virtual void getBlockLocalPathInfo(const ExtendedBlock & block,
                                        const Token & token, BlockLocalPathInfo & info);
+
+    virtual void sendPing();
 
 private:
     void invoke(const RpcCall & call, bool reuse);

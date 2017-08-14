@@ -337,9 +337,9 @@ bool NamenodeImpl::rename(const std::string & src, const std::string & dst)
     }
 }
 
-/*void NamenodeImpl::concat(const std::string & trg,
-                          const std::vector<std::string> & srcs)  throw (UnresolvedLinkException,
-         HdfsIOException) {
+void NamenodeImpl::concat(const std::string & trg,
+                          const std::vector<std::string> & srcs)
+/* throw (UnresolvedLinkException, HdfsIOException) */{
     try {
         ConcatRequestProto request;
         ConcatResponseProto response;
@@ -350,7 +350,7 @@ bool NamenodeImpl::rename(const std::string & src, const std::string & dst)
         UnWrapper<UnresolvedLinkException, HdfsIOException> unwrapper(e);
         unwrapper.unwrap(__FILE__, __LINE__);
     }
-}*/
+}
 
 bool NamenodeImpl::truncate(const std::string & src, int64_t size,
                             const std::string & clientName)

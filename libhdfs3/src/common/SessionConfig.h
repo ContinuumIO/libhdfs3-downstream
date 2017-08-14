@@ -170,6 +170,10 @@ public:
         return addDatanode;
     }
 
+    bool canAddDatanodeBest() const {
+        return addDatanodeBest;
+    }
+
     int32_t getHeartBeatInterval() const {
         return heartBeatInterval;
     }
@@ -370,6 +374,7 @@ public:
      * OutputStream configure
      */
     bool addDatanode;
+    bool addDatanodeBest;
     int32_t chunkSize;
     int32_t packetSize;
     int32_t blockWriteRetry; //retry on block not replicated yet.
