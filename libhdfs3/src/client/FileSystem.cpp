@@ -140,6 +140,14 @@ FileSystem::FileSystem(const Config & conf) :
     conf(conf), impl(NULL) {
 }
 
+FileSystem::FileSystem(const Config & conf, const char * euser) :
+    conf(conf), impl(NULL) {
+        if (euser == NULL)
+            effective_user = "";
+        else
+            effective_user = euser;
+}
+
 FileSystem::FileSystem(const FileSystem & other) :
     conf(other.conf), impl(NULL) {
     if (other.impl) {
@@ -153,6 +161,7 @@ FileSystem & FileSystem::operator =(const FileSystem & other) {
     }
 
     conf = other.conf;
+    effective_user = other.effective_user;
 
     if (impl) {
         delete impl;
@@ -189,12 +198,13 @@ void FileSystem::connect(const char * uri) {
 }
 
 static FileSystemWrapper * ConnectInternal(const char * uri,
-        const std::string & principal, const Token * token, Config & conf) {
+      const std::string & principal, const Token * token, Config & conf,
+      const char * effective_user=NULL) {
     if (NULL == uri || 0 == strlen(uri)) {
         THROW(InvalidParameter, "Invalid HDFS uri.");
     }
 
-    FileSystemKey key(uri, principal.c_str());
+    FileSystemKey key(uri, principal.c_str(), effective_user);
 
     if (token) {
         key.addToken(*token);
@@ -226,7 +236,7 @@ void FileSystem::connect(const char * uri, const char * username, const char * t
             Token t;
             t.fromString(token);
             principal = ExtractPrincipalFromToken(t);
-            impl = ConnectInternal(uri, principal, &t, conf);
+            impl = ConnectInternal(uri, principal, &t, conf, NULL);
             impl->filesystem->connect();
             return;
         } else if (username) {
@@ -237,7 +247,10 @@ void FileSystem::connect(const char * uri, const char * username, const char * t
             principal = ExtractPrincipalFromTicketCache(sconf.getKerberosCachePath());
         }
 
-        impl = ConnectInternal(uri, principal, NULL, conf);
+        const char * euser = NULL;
+        if (!effective_user.empty())
+            euser = effective_user.c_str();
+        impl = ConnectInternal(uri, principal, NULL, conf, euser);
         impl->filesystem->connect();
     } catch (...) {
         delete impl;

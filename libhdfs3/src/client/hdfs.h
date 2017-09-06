@@ -148,7 +148,7 @@ hdfsFS hdfsConnectNewInstance(const char * nn, tPort port);
  * @param bld    The HDFS builder
  * @return       Returns a handle to the filesystem, or NULL on error.
  */
-hdfsFS hdfsBuilderConnect(struct hdfsBuilder * bld);
+hdfsFS hdfsBuilderConnect(struct hdfsBuilder * bld, const char * effective_user=NULL);
 
 /**
  * Create an HDFS builder.
