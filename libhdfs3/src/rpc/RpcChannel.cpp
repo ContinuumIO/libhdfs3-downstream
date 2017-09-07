@@ -662,8 +662,17 @@ void RpcChannelImpl::sendPing() {
         LOG(INFO,
             "RPC channel to \"%s:%s\" got no response or idle for %d milliseconds, sending ping.",
             key.getServer().getHost().c_str(), key.getServer().getPort().c_str(), key.getConf().getPingTimeout());
-        sock->writeFully(&pingRequest[0], pingRequest.size(), key.getConf().getWriteTimeout());
-        lastActivity = steady_clock::now();
+            int length = pingRequest.size();
+            std::string data;
+            data.resize(length);
+            memcpy(&data[0], &pingRequest[0], length);
+
+            if (saslClient) {
+                SaslOutputWrapper wrapper(saslClient.get(), &client);
+                data = wrapper.wrap(data);
+            }
+            sock->writeFully(data.c_str(), data.length(), key.getConf().getWriteTimeout());
+            lastActivity = steady_clock::now();
     }
 }
 
