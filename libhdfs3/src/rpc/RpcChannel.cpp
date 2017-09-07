@@ -928,7 +928,6 @@ void RpcChannelImpl::readOneResponse(bool writeLock) {
         return;
     }
     bodySize = in->readVarint32(readTimeout);
-
     if (bodySize > 0) {
         body.resize(bodySize);
         in->readFully(&body[0], bodySize, readTimeout);
@@ -982,20 +981,23 @@ void RpcChannelImpl::readOneResponse(bool writeLock) {
                   key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
         }
 
-        ret = stream.ReadVarint32(&bodySize);
-        if (!ret) {
-            THROW(HdfsRpcException,
-                  "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel cannot parse wrapped body size.",
-                  key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
-        }
-        if (bodySize > 0) {
-            body.resize(bodySize);
-            ret = stream.ReadRaw(&body[0], bodySize);
+        status = curRespHeader.status();
+        if (RpcResponseHeaderProto_RpcStatusProto_SUCCESS == status) {
+            ret = stream.ReadVarint32(&bodySize);
             if (!ret) {
                 THROW(HdfsRpcException,
-                      "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel cannot parse wrapped body.",
+                      "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel cannot parse wrapped body size.",
                       key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
             }
+            if (bodySize > 0) {
+                body.resize(bodySize);
+                ret = stream.ReadRaw(&body[0], bodySize);
+                if (!ret) {
+                    THROW(HdfsRpcException,
+                          "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel cannot parse wrapped body.",
+                          key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
+                }
+            }               
         }
     }
 
