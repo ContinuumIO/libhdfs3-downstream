@@ -236,7 +236,10 @@ void FileSystem::connect(const char * uri, const char * username, const char * t
             Token t;
             t.fromString(token);
             principal = ExtractPrincipalFromToken(t);
-            impl = ConnectInternal(uri, principal, &t, conf, NULL);
+            const char * euser = NULL;
+            if (!effective_user.empty())
+                euser = effective_user.c_str();
+            impl = ConnectInternal(uri, principal, &t, conf, euser);         
             impl->filesystem->connect();
             return;
         } else if (username) {
