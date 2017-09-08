@@ -24,6 +24,8 @@
 
 #include "DataTransferProtocol.h"
 #include "network/Socket.h"
+#include "rpc/SaslClient.h"
+#include "server/EncryptionKey.h"
 
 /**
  * Version 28:
@@ -125,10 +127,24 @@ public:
                                         const Token& blockToken,
                                         uint32_t maxVersion);
 
+    virtual bool needsLength();
+    virtual bool isWrapped();
+
+    virtual std::string unwrap(std::string data);
+    virtual std::string wrap(std::string data);
+private:
+    void setupSasl(const ExtendedBlock blk, const Token& blockToken);
+
 private:
     Socket & sock;
     int writeTimeout;
     std::string datanode;
+    bool isSecure;
+    bool isToken;
+    bool saslComplete;
+    SaslClient *saslClient;
+    EncryptionKey theKey;
+    int32_t cryptoBufferSize;
 };
 
 }

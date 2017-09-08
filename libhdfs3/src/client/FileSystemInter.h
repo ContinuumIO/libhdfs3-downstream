@@ -39,6 +39,7 @@
 #include "Unordered.h"
 #include "UserInfo.h"
 #include "XmlConfig.h"
+#include "server/EncryptionKey.h"
 
 namespace Hdfs {
 
@@ -89,6 +90,8 @@ public:
      * disconnect from hdfs
      */
     virtual void disconnect() = 0;
+
+    virtual EncryptionKey getEncryptionKeys() = 0;
 
     /**
      * To get default number of replication.

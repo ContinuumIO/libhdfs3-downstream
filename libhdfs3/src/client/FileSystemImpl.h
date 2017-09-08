@@ -76,6 +76,8 @@ public:
      */
     const char * getClientName();
 
+    EncryptionKey getEncryptionKeys();
+
     /**
      * Connect to hdfs
      */

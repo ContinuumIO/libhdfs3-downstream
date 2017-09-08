@@ -28,19 +28,50 @@
 #include "network/Socket.h"
 #include "RpcAuth.h"
 #include "RpcHeader.pb.h"
+#include <openssl/conf.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
 
 namespace Hdfs {
 namespace Internal {
 
 #define SWITCH_TO_SIMPLE_AUTH -88
 
+class AESClient {
+public:
+    AESClient(std::string enckey, std::string enciv,
+              std::string deckey, std::string deciv, int bufsize);
+    ~AESClient();
+
+    std::string encode(const char *input, size_t input_len);
+    std::string decode(const char *input, size_t input_len);
+
+private:
+    EVP_CIPHER_CTX *encrypt;
+    EVP_CIPHER_CTX *decrypt;
+
+    int packetsSent;
+    long decoffset;
+    int bufsize;
+
+    std::string enckey;
+    std::string enciv;
+    std::string deckey;
+    std::string deciv;
+    std::string initdeciv;
+    static bool initialized;
+};
+
 class SaslClient {
 public:
     SaslClient(const RpcSaslProto_SaslAuth & auth, const Token & token,
-               const std::string & principal);
+               const std::string & principal, bool encryptedData=false);
 
     ~SaslClient();
 
+    bool needsLength();
+    void setAes(AESClient *client);
+   
     std::string evaluateChallenge(const std::string & chanllege);
 
     bool isComplete();
@@ -58,6 +89,7 @@ private:
     void initDigestMd5(const RpcSaslProto_SaslAuth & auth, const Token & token);
 
 private:
+    AESClient *aes;
     Gsasl * ctx;
     Gsasl_session * session;
     bool changeLength;
@@ -67,6 +99,7 @@ private:
     const RpcSaslProto_SaslAuth theAuth;
     const Token theToken;
     const std::string thePrincipal;
+    bool encryptedData;
 };
 
 }

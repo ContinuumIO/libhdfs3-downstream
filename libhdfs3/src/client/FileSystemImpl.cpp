@@ -181,6 +181,14 @@ void FileSystemImpl::connect() {
      * To test if the connection is ok
      */
     getFsStats();
+    if (sconf.getEncryptedDatanode())
+        nn->getEncryptionKeys();
+}
+
+EncryptionKey FileSystemImpl::getEncryptionKeys() {
+    if (sconf.getEncryptedDatanode())
+        return nn->getEncryptionKeys();
+    return EncryptionKey();
 }
 
 /**

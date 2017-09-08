@@ -240,6 +240,12 @@ void NamenodeProxy::getBlockLocations(const std::string & src, int64_t offset,
     NAMENODE_HA_RETRY_END();
 }
 
+EncryptionKey NamenodeProxy::getEncryptionKeys() {
+    NAMENODE_HA_RETRY_BEGIN();
+    return namenode->getEncryptionKeys();
+    NAMENODE_HA_RETRY_END();
+}
+   
 void NamenodeProxy::create(const std::string & src, const Permission & masked,
                            const std::string & clientName, int flag, bool createParent,
                            short replication, int64_t blockSize) {
