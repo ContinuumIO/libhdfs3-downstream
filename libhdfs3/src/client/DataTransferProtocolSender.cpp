@@ -198,11 +198,11 @@ void DataTransferProtocolSender::transferBlock(const ExtendedBlock & blk,
         throw;
     } catch (const HdfsEndOfStream & e) {
         NESTED_THROW(HdfsEndOfStream,
-                     "DataTransferProtocolSender cannot send write request to datanode %s.",
+                    "DataTransferProtocolSender cannot send transfer request to datanode %s.",
                      datanode.c_str());
     } catch (const HdfsIOException & e) {
         NESTED_THROW(HdfsIOException,
-                     "DataTransferProtocolSender cannot send write request to datanode %s.",
+                     "DataTransferProtocolSender cannot send transfer request to datanode %s.",
                      datanode.c_str());
     } catch (const HdfsException & e) {
         NESTED_THROW(HdfsIOException,
