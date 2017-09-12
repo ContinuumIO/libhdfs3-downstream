@@ -106,6 +106,10 @@ public:
         return secureDatanode;
     }
 
+    void setSecureDatanode(bool val) {
+        secureDatanode = val;
+    }
+
     int32_t getCryptoBufferSize() const {
         return cryptoBufferSize;
     }

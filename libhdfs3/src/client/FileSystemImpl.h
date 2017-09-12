@@ -450,7 +450,7 @@ public:
      * Get the configuration used in filesystem.
      * @return return the configuration instance.
      */
-    const SessionConfig & getConf() const {
+     SessionConfig & getConf()  {
         return sconf;
     }
 

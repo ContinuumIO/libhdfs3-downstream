@@ -50,23 +50,24 @@ while (i-- > 0) {
   IV[i] = (unsigned char) sum;
 }
 return IV;
-        +}
-        +
-        +void printArray(std::string str, const char* text) {
-int i=0;
-printf("length %d: %s\n", str.length(), text);
-for (i=0; i < str.length(); i++) {
-    printf("%02d ", (int)str[i]);
 }
-printf("\n");
-        +
-        +}
-        +bool AESClient::initialized = false;
-        +
-        +AESClient::AESClient(std::string enckey, std::string enciv,
-          std::string deckey, std::string deciv, int bufsize) : enckey(enckey),
-            enciv(enciv), deckey(deckey), deciv(deciv), initdeciv(deciv), bufsize(bufsize), decoffset(0), packetsSent(0)
-        +{
+
+void printArray(std::string str, const char* text) {
+    int i=0;
+    printf("length %d: %s\n", (int)str.length(), text);
+    for (i=0; i < (int)str.length(); i++) {
+        printf("%02d ", (int)str[i]);
+    }
+    printf("\n");
+
+}
+bool AESClient::initialized = false;
+
+AESClient::AESClient(std::string enckey, std::string enciv,
+    std::string deckey, std::string deciv, int bufsize) :
+              encrypt(NULL), decrypt(NULL), packetsSent(0), decoffset(0), bufsize(bufsize),
+              enckey(enckey), enciv(enciv), deckey(deckey), deciv(deciv), initdeciv(deciv)
+{
 if (!initialized) {
   ERR_load_crypto_strings();
   OpenSSL_add_all_algorithms();
@@ -110,23 +111,23 @@ if (!EVP_CipherInit_ex(decrypt, cipher, NULL, (const unsigned char*)deckey.c_str
 }
 EVP_CIPHER_CTX_set_padding(encrypt, 0);
 EVP_CIPHER_CTX_set_padding(decrypt, 0);
-        +
-        +}
-        +
-        +AESClient::~AESClient() {
+
+}
+
+AESClient::~AESClient() {
 if (encrypt)
     EVP_CIPHER_CTX_free(encrypt);
 if (decrypt)
     EVP_CIPHER_CTX_free(decrypt);
-        +}
-        +
-        +std::string AESClient::encode(const char *input, size_t input_len) {
+}
+
+std::string AESClient::encode(const char *input, size_t input_len) {
 int len;
 std::string result;
 result.resize(input_len);
 int offset = 0;
 int remaining = input_len;
-        +
+
 while (remaining > bufsize) {
     if (!EVP_CipherUpdate (encrypt, (unsigned char*)&result[offset], &len, (const unsigned char*)input+offset, bufsize)) {
         std::string err = ERR_lib_error_string(ERR_get_error());
@@ -137,7 +138,7 @@ while (remaining > bufsize) {
     remaining -= len;
 }
 if (remaining) {
-        +
+
     if (!EVP_CipherUpdate (encrypt, (unsigned char*)&result[offset], &len, (const unsigned char*)input+offset, remaining)) {
         std::string err = ERR_lib_error_string(ERR_get_error());
         THROW(HdfsIOException, "Cannot encrypt AES data %s",
@@ -145,16 +146,16 @@ if (remaining) {
     }
 }
 return result;
-        +}
-        +
-        +
-        +std::string AESClient::decode(const char *input, size_t input_len) {
+}
+
+
+std::string AESClient::decode(const char *input, size_t input_len) {
 int len;
 std::string result;
 result.resize(input_len);
 int offset = 0;
 int remaining = input_len;
-        +
+
 while (remaining > bufsize) {
     if (!EVP_CipherUpdate (decrypt, (unsigned char*)&result[offset], &len, (const unsigned char*)input+offset, bufsize)) {
         std::string err = ERR_lib_error_string(ERR_get_error());
@@ -165,26 +166,27 @@ while (remaining > bufsize) {
     remaining -= len;
 }
 if (remaining) {
-        +
+
     if (!EVP_CipherUpdate (decrypt, (unsigned char*)&result[offset], &len, (const unsigned char*)input+offset, remaining)) {
         std::string err = ERR_lib_error_string(ERR_get_error());
         THROW(HdfsIOException, "Cannot decrypt AES data %s",
               err.c_str());
     }
 }
+decoffset += input_len;
 return result;
-        +
-        +}
-        +
-        +
-        +
-        +
+
+}
+
+
+
+
        
 SaslClient::SaslClient(const RpcSaslProto_SaslAuth & auth, const Token & token,
                        const std::string & principal, bool encryptedData) :
-     complete(false), changeLength(false),
-     privacy(false), integrity(false),
-     theAuth(auth), theToken(token), thePrincipal(principal), encryptedData(encryptedData), aes(NULL)  {
+    aes(NULL), ctx(NULL), session(NULL), changeLength(false), complete(false),
+    privacy(false), integrity(false),
+    theAuth(auth), theToken(token), thePrincipal(principal), encryptedData(encryptedData)   {
     int rc;
     ctx = NULL;
     RpcAuth method = RpcAuth(RpcAuth::ParseMethod(auth.method()));
@@ -225,7 +227,11 @@ SaslClient::~SaslClient() {
 }
 
 bool SaslClient::needsLength() {
-    return aes == NULL;
+    if (aes != NULL)
+        return false;
+    if ((!privacy && !integrity) || (!complete))
+        return false;
+    return true;
 }
 
 void SaslClient::setAes(AESClient *client) {

@@ -78,6 +78,8 @@ private:
     void readNextPacket();
     void sendStatus();
     void verifyChecksum(int chunks);
+    void setupReader(SessionConfig& conf);
+    void cleanupSocket();
 
 private:
     bool sentStatus;

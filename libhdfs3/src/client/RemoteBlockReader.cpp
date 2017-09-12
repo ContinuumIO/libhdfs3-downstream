@@ -64,6 +64,26 @@ RemoteBlockReader::RemoteBlockReader(shared_ptr<FileSystemInter> filesystem,
     readTimeout = conf.getInputReadTimeout();
     writeTimeout = conf.getInputWriteTimeout();
     connTimeout = conf.getInputConnTimeout();
+    setupReader(conf);
+    try {
+        sender->readBlock(eb, token, clientName, start, len);
+    } catch (HdfsEndOfStream &ex) {
+        if (!conf.getEncryptedDatanode() && conf.getSecureDatanode()) {
+            conf.setSecureDatanode(false);
+            filesystem->getConf().setSecureDatanode(false);
+            LOG(INFO, "Tried to use SASL connection but failed, falling back to non SASL");
+            cleanupSocket();
+            setupReader(conf);
+            sender->readBlock(eb, token, clientName, start, len);
+        } else {
+            throw;
+        }
+    }
+    checkResponse();
+}
+
+void RemoteBlockReader::setupReader(SessionConfig& conf)
+{
     sock = getNextPeer(datanode);
     EncryptionKey key = filesystem->getEncryptionKeys();
     in = shared_ptr<BufferedSocketReader>(new BufferedSocketReaderImpl(*sock));
@@ -71,16 +91,20 @@ RemoteBlockReader::RemoteBlockReader(shared_ptr<FileSystemInter> filesystem,
         *sock, writeTimeout, datanode.formatAddress(), conf.getEncryptedDatanode(),
         conf.getSecureDatanode(), key, conf.getCryptoBufferSize()));
     reader = shared_ptr<DataReader>(new DataReader(sender.get(), in, readTimeout));
-    sender->readBlock(eb, token, clientName, start, len);
-    checkResponse();
 }
 
-RemoteBlockReader::~RemoteBlockReader() {
-    if (sentStatus) {
+void RemoteBlockReader::cleanupSocket() {
+    bool reuse = sentStatus && sender == NULL;
+    if (reuse) {
         peerCache.addConnection(sock, datanode);
     } else {
         sock->close();
     }
+
+}
+
+RemoteBlockReader::~RemoteBlockReader() {
+    cleanupSocket();
 }
 
 shared_ptr<Socket> RemoteBlockReader::getNextPeer(const DatanodeInfo& dn) {
@@ -223,10 +247,10 @@ shared_ptr<PacketHeader> RemoteBlockReader::readPacketHeader() {
 
                     respBuffer.resize(respSize);
                     in->readFully(&respBuffer[0], respSize, readTimeout);
-                    data = sender->unwrap(std::string(respBuffer.begin(), respBuffer.end()));
-                    if (packetHeaderLen > data.length()) {
+                    data = sender->unwrap(&respBuffer[0], respSize);
+                    if (packetHeaderLen > (int)data.length()) {
                         THROW(HdfsIOException, "RemoteBlockReader get a invalid packer header size: %d, Block: %s, from Datanode: %s",
-                              data.length(), binfo.toString().c_str(), datanode.formatAddress().c_str());
+                              (int)data.length(), binfo.toString().c_str(), datanode.formatAddress().c_str());
                     }
                     reader->setRest(data.c_str()+packetHeaderLen, data.size()-packetHeaderLen);
                 }
@@ -236,9 +260,9 @@ shared_ptr<PacketHeader> RemoteBlockReader::readPacketHeader() {
                 sprintf(error_text, "Block: %s, from Datanode: %s.", binfo.toString().c_str(), datanode.formatAddress().c_str());
                 std::vector<char> &respBuffer = reader->readPacketHeader(error_text, packetHeaderLen, respSize);
                 data = std::string(respBuffer.begin(), respBuffer.end());
-                if (packetHeaderLen > data.length()) {
+                if (packetHeaderLen > (int)data.length()) {
                     THROW(HdfsIOException, "RemoteBlockReader get a invalid packer header size: %d, Block: %s, from Datanode: %s",
-                          data.length(), binfo.toString().c_str(), datanode.formatAddress().c_str());
+                          (int)data.length(), binfo.toString().c_str(), datanode.formatAddress().c_str());
                 }
             }
 
@@ -280,7 +304,7 @@ void RemoteBlockReader::readNextPacket() {
             in->readFully(&buffer[0], size, readTimeout);
         } else {
             std::string& rest = reader->getRest();
-            if (rest.size() < size) {
+            if ((int)rest.size() < size) {
                 reader->getMissing(size);
                 rest = reader->getRest();
             }

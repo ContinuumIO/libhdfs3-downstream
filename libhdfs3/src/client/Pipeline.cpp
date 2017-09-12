@@ -42,12 +42,12 @@ using namespace google::protobuf::io;
 namespace Hdfs {
 namespace Internal {
 
-PipelineImpl::PipelineImpl(bool append, const char * path, const SessionConfig & conf,
+PipelineImpl::PipelineImpl(bool append, const char * path, SessionConfig & conf,
                            shared_ptr<FileSystemInter> filesystem, int checksumType, int chunkSize,
                            int replication, int64_t bytesSent, PacketPool & packetPool, shared_ptr<LocatedBlock> lastBlock) :
-    checksumType(checksumType), chunkSize(chunkSize), errorIndex(-1), replication(replication), bytesAcked(
+    config(conf), checksumType(checksumType), chunkSize(chunkSize), errorIndex(-1), replication(replication), bytesAcked(
         bytesSent), bytesSent(bytesSent), packetPool(packetPool), filesystem(filesystem), lastBlock(lastBlock), path(
-            path), config(conf) {
+            path) {
     canAddDatanode = conf.canAddDatanode();
     canAddDatanodeBest = conf.canAddDatanodeBest();
     blockWriteRetry = conf.getBlockWriteRetry();
@@ -245,7 +245,7 @@ void PipelineImpl::buildForAppendOrRecovery(bool recovery) {
                 LOG(INFO, "Pipeline: node %s was able to ping. Will continue to use.",
                     nodes[errorIndex].formatAddress().c_str());
                 removed = nodes[errorIndex];
-                if (errorIndex < storageIDs.size())
+                if (errorIndex < (int)storageIDs.size())
                     storageID = storageIDs[errorIndex];
                 useRemoved = true;
             }
@@ -647,6 +647,17 @@ void PipelineImpl::createBlockOutputStream(const Token & token, int64_t gs, bool
         }
 
         return;
+    } catch (HdfsEndOfStream &ex) {
+        if (!config.getEncryptedDatanode() && config.getSecureDatanode()) {
+            config.setSecureDatanode(false);
+            filesystem->getConf().setSecureDatanode(false);
+            LOG(INFO, "Tried to use SASL connection but failed, falling back to non SASL");
+            createBlockOutputStream(token, gs, recovery);
+            return;
+        } else {
+            errorIndex = 0;
+            lastError = current_exception();
+        }
     } catch (...) {
         errorIndex = 0;
         lastError = current_exception();

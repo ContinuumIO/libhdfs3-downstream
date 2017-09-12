@@ -132,6 +132,10 @@ void DataTransferProtocolSender::readBlock(const ExtendedBlock & blk,
         Send(sock, READ_BLOCK, &op, writeTimeout, saslClient);
     } catch (const HdfsCanceled & e) {
         throw;
+    } catch (const HdfsEndOfStream & e) {
+        NESTED_THROW(HdfsEndOfStream,
+                     "DataTransferProtocolSender cannot send write request to datanode %s.",
+                     datanode.c_str());;
     } catch (const HdfsException & e) {
         NESTED_THROW(HdfsIOException,
                      "DataTransferProtocolSender cannot send read request to datanode %s.",
@@ -161,6 +165,10 @@ void DataTransferProtocolSender::writeBlock(const ExtendedBlock & blk,
         Send(sock, WRITE_BLOCK, &op, writeTimeout, saslClient);
     } catch (const HdfsCanceled & e) {
         throw;
+    } catch (const HdfsEndOfStream & e) {
+        NESTED_THROW(HdfsEndOfStream,
+                     "DataTransferProtocolSender cannot send write request to datanode %s.",
+                     datanode.c_str());;
     } catch (const HdfsException & e) {
         NESTED_THROW(HdfsIOException,
                      "DataTransferProtocolSender cannot send write request to datanode %s.",
@@ -180,6 +188,10 @@ void DataTransferProtocolSender::transferBlock(const ExtendedBlock & blk,
         Send(sock, TRANSFER_BLOCK, &op, writeTimeout, saslClient);
     } catch (const HdfsCanceled & e) {
         throw;
+    } catch (const HdfsEndOfStream & e) {
+        NESTED_THROW(HdfsEndOfStream,
+                     "DataTransferProtocolSender cannot send write request to datanode %s.",
+                     datanode.c_str());;
     } catch (const HdfsException & e) {
         NESTED_THROW(HdfsIOException,
                      "DataTransferProtocolSender cannot send transfer request to datanode %s.",
@@ -213,6 +225,10 @@ void DataTransferProtocolSender::requestShortCircuitFds(const ExtendedBlock blk,
         Send(sock, REQUEST_SHORT_CIRCUIT_FDS, &op, writeTimeout, saslClient);
     } catch (const HdfsCanceled& e) {
         throw;
+    } catch (const HdfsEndOfStream & e) {
+        NESTED_THROW(HdfsEndOfStream,
+                     "DataTransferProtocolSender cannot send write request to datanode %s.",
+                     datanode.c_str());;
     } catch (const HdfsException& e) {
         NESTED_THROW(HdfsIOException,
                      "DataTransferProtocolSender cannot send request "
@@ -253,7 +269,7 @@ void readSaslMessage(Socket & sock, int readTimeout, DataTransferEncryptorMessag
                         std::string &datanode) {
     std::vector<char> buffer(128);
     std::vector<char> body(128);
-    uint32_t headerSize = 0, bodySize = 0;
+    uint32_t headerSize = 0;
     /*
      * read response header
      */
@@ -276,7 +292,7 @@ void readSaslMessage(Socket & sock, int readTimeout, DataTransferEncryptorMessag
 }
 
 bool DataTransferProtocolSender::isWrapped() {
-    if (saslClient)
+    if (saslClient && (saslClient->isPrivate() || saslClient->isIntegrity()))
         return true;
     return false;
 }
@@ -287,13 +303,23 @@ bool DataTransferProtocolSender::needsLength() {
     return true;
 }
 
-std::string DataTransferProtocolSender::unwrap(std::string data) {
+std::string DataTransferProtocolSender::unwrap(std::string& data) {
     std::string rawdata = saslClient->decode(data.c_str(), data.length());
     return rawdata;
 }
 
-std::string DataTransferProtocolSender::wrap(std::string data) {
+std::string DataTransferProtocolSender::wrap(std::string& data) {
     std::string rawdata = saslClient->encode(data.c_str(), data.length());
+    return rawdata;
+}
+
+std::string DataTransferProtocolSender::unwrap(const char *input, size_t input_len) {
+    std::string rawdata = saslClient->decode(input, input_len);
+    return rawdata;
+}
+
+std::string DataTransferProtocolSender::wrap(const char *input, size_t input_len) {
+    std::string rawdata = saslClient->encode(input, input_len);
     return rawdata;
 }
 
@@ -325,6 +351,9 @@ void DataTransferProtocolSender::setupSasl(const ExtendedBlock blk, const Token&
     ourToken.setKind(blockToken.getKind());
     ourToken.setPassword(blockToken.getPassword());
     ourToken.setService(blockToken.getService());
+
+    if (isSecure && theKey.getNonce().length() == 0)
+        isSecure = false;
 
     if (isSecure) {
         char temp[100];

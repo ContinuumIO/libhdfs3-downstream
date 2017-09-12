@@ -943,7 +943,7 @@ void RpcChannelImpl::readOneResponse(bool writeLock) {
     }
     if (saslClient && (saslClient->isPrivate() || saslClient->isIntegrity()) && saslComplete) {
 
-        if (curRespHeader.callid() != AuthProtocol::SASL) {
+        if (curRespHeader.callid() != (unsigned)AuthProtocol::SASL) {
             THROW(HdfsRpcException,
                   "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel expected SASL wrapped message.",
                   key.getServer().getHost().c_str(), key.getServer().getPort().c_str())

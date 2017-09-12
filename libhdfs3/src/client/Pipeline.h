@@ -125,7 +125,7 @@ public:
     /**
      * construct and setup the pipeline for append.
      */
-    PipelineImpl(bool append, const char * path, const SessionConfig & conf,
+    PipelineImpl(bool append, const char * path, SessionConfig & conf,
                  shared_ptr<FileSystemInter> filesystem, int checksumType, int chunkSize,
                  int replication, int64_t bytesSent, PacketPool & packetPool,
                  shared_ptr<LocatedBlock> lastBlock);
@@ -167,7 +167,7 @@ private:
     static void checkBadLinkFormat(const std::string & node);
 
 private:
-    const SessionConfig & config;
+    SessionConfig & config;
     BlockConstructionStage stage;
     bool canAddDatanode;
     bool canAddDatanodeBest;

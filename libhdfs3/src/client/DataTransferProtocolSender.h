@@ -130,8 +130,10 @@ public:
     virtual bool needsLength();
     virtual bool isWrapped();
 
-    virtual std::string unwrap(std::string data);
-    virtual std::string wrap(std::string data);
+    virtual std::string unwrap(std::string &data);
+    virtual std::string wrap(std::string &data);
+    virtual std::string unwrap(const char *input, size_t input_len);
+    virtual std::string wrap(const char *input, size_t input_len);
 private:
     void setupSasl(const ExtendedBlock blk, const Token& blockToken);
 
