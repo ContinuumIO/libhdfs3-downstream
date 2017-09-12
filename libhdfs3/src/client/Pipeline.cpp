@@ -168,9 +168,22 @@ bool PipelineImpl::addDatanodeToPipeline(const std::vector<DatanodeInfo> & exclu
             targets.push_back(nodes[d]);
             LOG(INFO, "Replicate block %s from %s to %s for file %s.", lastBlock->toString().c_str(),
                 src.formatAddress().c_str(), targets[0].formatAddress().c_str(), path.c_str());
-            transfer(*lastBlock, src, targets, lb->getToken());
-            errorIndex = -1;
-            return true;
+            try {
+                transfer(*lastBlock, src, targets, lb->getToken());
+                errorIndex = -1;
+                return true;
+            } catch (HdfsIOException &ex) {
+                if (!config.getEncryptedDatanode() && config.getSecureDatanode()) {
+                    config.setSecureDatanode(false);
+                    filesystem->getConf().setSecureDatanode(false);
+                    LOG(INFO, "Tried to use SASL connection but failed, falling back to non SASL");
+                    transfer(*lastBlock, src, targets, lb->getToken());
+                    errorIndex = -1;
+                    return true;
+                } else {
+                    throw;
+                }
+            }
         }
     } catch (const HdfsCanceled & e) {
         throw;

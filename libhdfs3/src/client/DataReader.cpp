@@ -26,9 +26,20 @@ int fillData(BufferedSocketReader *reader, std::string &raw, bool &error, DataTr
     error = false;
     if (sender) {
         std::string temp;
-        temp.resize(5);
-        reader->readFully(&temp[0], 5, 30000);
-        std::string data = sender->unwrap(temp);
+        temp.resize(1);
+
+        // we need to read at most 5 bytes
+        int i = 0;
+        std::string data;
+        while (i < 5) {
+            reader->readFully(&temp[0], 1, 30000);
+            std::string dec = sender->unwrap(temp);
+            i += 1;
+            data += dec;
+            const uint8* ptr = (uint8*) dec.c_str();
+            if (!(*ptr & 0x80))
+                break;
+        }
         CodedInputStream stream(reinterpret_cast<const uint8_t *>(data.c_str()), data.length());
         int size;
         bool ret = stream.ReadVarint32((uint32*)&size);
