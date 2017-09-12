@@ -647,7 +647,7 @@ void PipelineImpl::createBlockOutputStream(const Token & token, int64_t gs, bool
         }
 
         return;
-    } catch (HdfsEndOfStream &ex) {
+    } catch (HdfsIOException &ex) {
         if (!config.getEncryptedDatanode() && config.getSecureDatanode()) {
             config.setSecureDatanode(false);
             filesystem->getConf().setSecureDatanode(false);

@@ -67,7 +67,7 @@ RemoteBlockReader::RemoteBlockReader(shared_ptr<FileSystemInter> filesystem,
     setupReader(conf);
     try {
         sender->readBlock(eb, token, clientName, start, len);
-    } catch (HdfsEndOfStream &ex) {
+    } catch (HdfsIOException &ex) {
         if (!conf.getEncryptedDatanode() && conf.getSecureDatanode()) {
             conf.setSecureDatanode(false);
             filesystem->getConf().setSecureDatanode(false);
