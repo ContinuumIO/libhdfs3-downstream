@@ -23,7 +23,7 @@
 #include "ExceptionInternal.h"
 #include "Function.h"
 #include "SessionConfig.h"
-
+#include "rpc/RpcAuth.h"
 #include <sstream>
 
 #define ARRAYSIZE(A) (sizeof(A) / sizeof(A[0]))
@@ -47,6 +47,20 @@ static void CheckMultipleOf(const char * key, const T & value, int unit) {
     if (value <= 0 || value % unit != 0) {
         THROW(HdfsConfigInvalid, "%s should be larger than 0 and be the multiple of %d.", key, unit);
     }
+}
+
+int32_t parseProtection(std::string &str) {
+    if (0 == strcasecmp(str.c_str(), "authentication")) {
+        return Protection::AUTH;
+    } else if (0 == strcasecmp(str.c_str(), "privacy")) {
+        return Protection::CONF;
+    } else if (0 == strcasecmp(str.c_str(), "integrity")) {
+        return Protection::INT;
+    } else {
+        THROW(InvalidParameter, "SessionConfig: Unknown protection mechanism type: %s",
+              str.c_str());
+    }
+
 }
 
 SessionConfig::SessionConfig(const Config & conf) {
@@ -153,6 +167,8 @@ SessionConfig::SessionConfig(const Config & conf) {
         {&logSeverity, "dfs.client.log.severity", "INFO" },
         {&domainSocketPath, "dfs.domain.socket.path", ""},
         {&kmsUrl, "dfs.encryption.key.provider.uri", "" },
+        {&rpcProtectionStr, "hadoop.rpc.protection", ""},
+        {&dataProtectionStr, "dfs.data.transfer.protection", ""}
         {&kmsAuthMethod, "hadoop.kms.authentication.type", "simple" }
     };
 
@@ -190,6 +206,17 @@ SessionConfig::SessionConfig(const Config & conf) {
         if (strValues[i].check) {
             strValues[i].check(strValues[i].key, *strValues[i].variable);
         }
+    }
+
+    if (rpcProtectionStr.length() > 0) {
+        rpcProtection = parseProtection(rpcProtectionStr);
+    } else {
+        rpcProtection = 0;
+    }
+    if (dataProtectionStr.length() > 0) {
+        dataProtection = parseProtection(dataProtectionStr);
+    } else {
+        dataProtection = 0;
     }
 }
 

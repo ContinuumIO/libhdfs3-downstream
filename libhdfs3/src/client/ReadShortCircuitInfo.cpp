@@ -237,7 +237,8 @@ ReadShortCircuitInfoBuilder::createReadShortCircuitInfo(
   std::string addr = buildDomainSocketAddress(key.dnPort);
   DomainSocketImpl sock;
   sock.connect(addr.c_str(), 0, conf.getInputConnTimeout());
-  DataTransferProtocolSender sender(sock, conf.getInputWriteTimeout(), addr);
+  DataTransferProtocolSender sender(sock, conf.getInputWriteTimeout(), conf.getEncryptedDatanode(),
+    conf.getSecureDatanode(), ekey, conf.getCryptoBufferSize(), conf.getDataProtection());
   sender.requestShortCircuitFds(block, token, MaxReadShortCircuitVersion);
   shared_ptr<ReadShortCircuitFDHolder> fds =
       receiveReadShortCircuitFDs(sock, block);

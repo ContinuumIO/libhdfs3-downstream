@@ -321,6 +321,14 @@ public:
       return socketCacheCapacity;
     }
 
+    int32_t getRpcProtection() const {
+        return rpcProtection;
+    }
+
+    int32_t getDataProtection() const {
+        return dataProtection;
+    }
+
     const std::string& getKmsUrl() const {
         return kmsUrl;
     }
@@ -342,6 +350,12 @@ public:
     }
 
 public:
+
+    int32_t rpcProtection;
+    int32_t dataProtection;
+    std::string rpcProtectionStr;
+    std::string dataProtectionStr;
+
     /*
      * rpc configure
      */

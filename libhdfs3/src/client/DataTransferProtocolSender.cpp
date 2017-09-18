@@ -109,9 +109,10 @@ static inline void BuildNodesInfo(const std::vector<DatanodeInfo> & nodes,
 
 DataTransferProtocolSender::DataTransferProtocolSender(Socket & sock,
         int writeTimeout, const std::string & datanodeAddr, bool secure, bool token,
-        EncryptionKey& key, int32_t cryptoBufferSize) :
+        EncryptionKey& key, int32_t cryptoBufferSize, int32_t protection) :
     sock(sock), writeTimeout(writeTimeout), datanode(datanodeAddr), isSecure(secure),
-    isToken(token), saslComplete(false), saslClient(NULL), theKey(key), cryptoBufferSize(cryptoBufferSize) {
+    isToken(token), saslComplete(false), saslClient(NULL), theKey(key), cryptoBufferSize(cryptoBufferSize),
+     int32_t protection {
 }
 
 DataTransferProtocolSender::~DataTransferProtocolSender() {
@@ -389,7 +390,7 @@ void DataTransferProtocolSender::setupSasl(const ExtendedBlock blk, const Token&
     auth.set_serverid(temp);
     temp = "hdfs";
     auth.set_protocol(temp);
-    saslClient = new SaslClient(auth, ourToken, "", isSecure);
+    saslClient = new SaslClient(auth, ourToken, "", isSecure, protection);
     std::string token = saslClient->evaluateChallenge(msg.payload());
     sendSaslMessage(sock, DataTransferEncryptorMessageProto_DataTransferEncryptorStatus_SUCCESS,
         token, "", writeTimeout, isSecure);

@@ -89,7 +89,7 @@ void RemoteBlockReader::setupReader(SessionConfig& conf)
     in = shared_ptr<BufferedSocketReader>(new BufferedSocketReaderImpl(*sock));
     sender = shared_ptr<DataTransferProtocol>(new DataTransferProtocolSender(
         *sock, writeTimeout, datanode.formatAddress(), conf.getEncryptedDatanode(),
-        conf.getSecureDatanode(), key, conf.getCryptoBufferSize()));
+        conf.getSecureDatanode(), key, conf.getCryptoBufferSize(), conf.getDataProtection()));
     reader = shared_ptr<DataReader>(new DataReader(sender.get(), in, readTimeout));
 }
 

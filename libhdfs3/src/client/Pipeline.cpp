@@ -102,7 +102,7 @@ void PipelineImpl::transfer(const ExtendedBlock & blk, const DatanodeInfo & src,
 
 
     DataTransferProtocolSender sender2(*so, writeTimeout, src.formatAddress(), config.getEncryptedDatanode(),
-        config.getSecureDatanode(), key, config.getCryptoBufferSize());
+        config.getSecureDatanode(), key, config.getCryptoBufferSize(), config.getDataProtection());
     sender2.transferBlock(blk, token, clientName.c_str(), targets);
     char error_text[2048];
     sprintf(error_text, "from %s for block %s.", nodes[0].formatAddress().c_str(), lastBlock->toString().c_str());
@@ -618,7 +618,8 @@ void PipelineImpl::createBlockOutputStream(const Token & token, int64_t gs, bool
                                           nodes[0].formatAddress(),
                                           config.getEncryptedDatanode(),
                                           config.getSecureDatanode(),
-                                          key, config.getCryptoBufferSize()));
+                                          key, config.getCryptoBufferSize(),
+                                          config.getDataProtection()));
         sender->writeBlock(*lastBlock, token, clientName.c_str(), targets,
                           (recovery ? (stage | 0x1) : stage), nodes.size(),
                           lastBlock->getNumBytes(), bytesSent, gs, checksumType, chunkSize);

@@ -183,10 +183,11 @@ return result;
 
        
 SaslClient::SaslClient(const RpcSaslProto_SaslAuth & auth, const Token & token,
-                       const std::string & principal, bool encryptedData) :
+                       const std::string & principal, bool encryptedData, int protection) :
     aes(NULL), ctx(NULL), session(NULL), changeLength(false), complete(false),
     privacy(false), integrity(false),
-    theAuth(auth), theToken(token), thePrincipal(principal), encryptedData(encryptedData)   {
+    theAuth(auth), theToken(token), thePrincipal(principal), encryptedData(encryptedData) ,
+      protection(protection) {
     int rc;
     ctx = NULL;
     RpcAuth method = RpcAuth(RpcAuth::ParseMethod(auth.method()));
@@ -259,6 +260,8 @@ std::string Base64Encode(const std::string & in) {
     char * temp;
     size_t len;
     std::string retval;
+    std::string copied_challenge = challenge;
+
     int rc = gsasl_base64_to(in.c_str(), in.size(), &temp, &len);
 
     if (rc != GSASL_OK) {
@@ -352,9 +355,13 @@ std::string SaslClient::evaluateChallenge(const std::string & challenge) {
                 preferred = qop[0];
         }
         else if (challenge.length()) {
-            std::string decoded = decode(challenge.c_str(), challenge.length());
-            int qop = (int)decoded.c_str()[0];
-            preferred = findPreferred(qop);
+            if (protection != 0)
+                preferred = protection;
+            else {
+                std::string decoded = decode(copied_challenge.c_str(), copied_challenge.length(), true);
+                int qop = (int)decoded.c_str()[0];
+                preferred = findPreferred(qop);
+            }
         }
         if (preferred & GSASL_QOP_AUTH_CONF) {
             privacy = true;
@@ -397,9 +404,9 @@ std::string SaslClient::encode(const char *input, size_t input_len) {
     return result;
 }
 
-std::string  SaslClient::decode(const char *input, size_t input_len) {
+std::string  SaslClient::decode(const char *input, size_t input_len, bool force) {
     std::string result;
-    if ((!privacy && !integrity) || (!complete)) {
+    if ((!privacy && !integrity && !force) || (!complete)) {
         result.resize(input_len);
         memcpy(&result[0], input, input_len);
         return result;

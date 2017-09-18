@@ -65,7 +65,8 @@ private:
 class SaslClient {
 public:
     SaslClient(const RpcSaslProto_SaslAuth & auth, const Token & token,
-               const std::string & principal, bool encryptedData=false);
+               const std::string & principal, bool encryptedData=false,
+               int protection=0);
 
     ~SaslClient();
 
@@ -80,7 +81,7 @@ public:
     bool isIntegrity();
 
     std::string encode(const char *input, size_t input_len);
-    std::string decode(const char *input, size_t input_len);
+    std::string decode(const char *input, size_t input_len, bool force=false);
 
 private:
     int findPreferred(int possible);
@@ -89,6 +90,7 @@ private:
     void initDigestMd5(const RpcSaslProto_SaslAuth & auth, const Token & token);
 
 private:
+    int protection;
     AESClient *aes;
     Gsasl * ctx;
     Gsasl_session * session;
