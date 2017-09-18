@@ -54,7 +54,9 @@ enum DataTransferOp {
 class DataTransferProtocolSender: public DataTransferProtocol {
 public:
     DataTransferProtocolSender(Socket & sock, int writeTimeout,
-                               const std::string & datanodeAddr);
+                               const std::string & datanodeAddr,
+                               bool secure, bool token, EncryptionKey& key,
+                               int32_t cryptoBufferSize);
 
     virtual ~DataTransferProtocolSender();
 
