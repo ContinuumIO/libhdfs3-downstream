@@ -228,7 +228,7 @@ public:
 
     LogSeverity getLogSeverity() const {
         for (size_t i = FATAL; i < sizeof(SeverityName) / sizeof(SeverityName[1]);
-    i) {
+    i++) {
             if (logSeverity == SeverityName[i]) {
                 return static_cast<LogSeverity>(i);
             }
@@ -337,10 +337,6 @@ public:
         return kmsAuthMethod;
     }
 
-    int32_t getCryptoBufferSize() const {
-        return cryptoBufferSize;
-    }
-
     int32_t getHttpRequestRetryTimes() const {
         return httpRequestRetryTimes;
     }
@@ -419,7 +415,6 @@ public:
     int32_t closeFileTimeout;
     std::string kmsUrl;
     std::string kmsAuthMethod;
-    int32_t cryptoBufferSize;
     int32_t httpRequestRetryTimes;
     int64_t curlTimeout;
 

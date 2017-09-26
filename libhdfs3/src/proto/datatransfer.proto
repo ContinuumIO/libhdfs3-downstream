@@ -34,19 +34,6 @@ package Hdfs.Internal;
 import "Security.proto";
 import "hdfs.proto";
 
-enum CipherSuiteProto {
-    UNKNOWN_CIPHER = 1;
-    AES_CTR_NOPADDING = 2;
-}
-
-message CipherOptionProto {
-  required CipherSuiteProto suite = 1;
-  optional bytes inKey = 2;
-  optional bytes inIv = 3;
-  optional bytes outKey = 4;
-  optional bytes outIv = 5;
-}
-
 message DataTransferEncryptorMessageProto {
   enum DataTransferEncryptorStatus {
     SUCCESS = 0;

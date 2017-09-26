@@ -260,7 +260,6 @@ std::string Base64Encode(const std::string & in) {
     char * temp;
     size_t len;
     std::string retval;
-    std::string copied_challenge = challenge;
 
     int rc = gsasl_base64_to(in.c_str(), in.size(), &temp, &len);
 
@@ -319,6 +318,8 @@ std::string SaslClient::evaluateChallenge(const std::string & challenge) {
     char * output = NULL;
     size_t outputSize;
     std::string retval;
+    std::string copied_challenge = challenge;
+
     rc = gsasl_step(session, &challenge[0], challenge.size(), &output,
                     &outputSize);
     RpcAuth method = RpcAuth(RpcAuth::ParseMethod(theAuth.method()));

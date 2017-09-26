@@ -112,7 +112,7 @@ DataTransferProtocolSender::DataTransferProtocolSender(Socket & sock,
         EncryptionKey& key, int32_t cryptoBufferSize, int32_t protection) :
     sock(sock), writeTimeout(writeTimeout), datanode(datanodeAddr), isSecure(secure),
     isToken(token), saslComplete(false), saslClient(NULL), theKey(key), cryptoBufferSize(cryptoBufferSize),
-     int32_t protection {
+    protection(protection) {
 }
 
 DataTransferProtocolSender::~DataTransferProtocolSender() {

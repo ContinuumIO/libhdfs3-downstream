@@ -168,7 +168,7 @@ SessionConfig::SessionConfig(const Config & conf) {
         {&domainSocketPath, "dfs.domain.socket.path", ""},
         {&kmsUrl, "dfs.encryption.key.provider.uri", "" },
         {&rpcProtectionStr, "hadoop.rpc.protection", ""},
-        {&dataProtectionStr, "dfs.data.transfer.protection", ""}
+        {&dataProtectionStr, "dfs.data.transfer.protection", ""},
         {&kmsAuthMethod, "hadoop.kms.authentication.type", "simple" }
     };
 
