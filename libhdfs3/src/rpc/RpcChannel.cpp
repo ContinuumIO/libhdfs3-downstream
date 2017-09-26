@@ -761,8 +761,8 @@ void RpcChannelImpl::buildConnectionContext(
     std::string euser = key.getAuth().getUser().getEffectiveUser();
     std::string ruser = key.getAuth().getUser().getRealUser();
 
-    if (!key.getAuth().getUser().hasEffectiveUser())
-        euser = principal;
+    if (!euser.empty())
+        user->set_effectiveuser(euser);
 
     if (auth.getMethod() != AuthMethod::TOKEN) {
         UserInformationProto * user = connectionContext.mutable_userinfo();
