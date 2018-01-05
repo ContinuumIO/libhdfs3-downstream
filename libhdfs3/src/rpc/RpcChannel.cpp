@@ -208,8 +208,10 @@ const RpcSaslProto_SaslAuth * RpcChannelImpl::createSaslClient(
         THROW(AccessControlException, "%s", ss.str().c_str());
     }
 
+    const RpcConfig & conf = key.getConf();
     saslClient = shared_ptr<SaslClient>(
-                     new SaslClient(*auth, token, key.getAuth().getUser().getPrincipal()));
+                     new SaslClient(*auth, token, key.getAuth().getUser().getPrincipal(),
+                     false, conf.getProtection()));
     return auth;
 }
 
@@ -662,8 +664,17 @@ void RpcChannelImpl::sendPing() {
         LOG(INFO,
             "RPC channel to \"%s:%s\" got no response or idle for %d milliseconds, sending ping.",
             key.getServer().getHost().c_str(), key.getServer().getPort().c_str(), key.getConf().getPingTimeout());
-        sock->writeFully(&pingRequest[0], pingRequest.size(), key.getConf().getWriteTimeout());
-        lastActivity = steady_clock::now();
+            int length = pingRequest.size();
+            std::string data;
+            data.resize(length);
+            memcpy(&data[0], &pingRequest[0], length);
+
+            if (saslClient) {
+                SaslOutputWrapper wrapper(saslClient.get(), &client);
+                data = wrapper.wrap(data);
+            }
+            sock->writeFully(data.c_str(), data.length(), key.getConf().getWriteTimeout());
+            lastActivity = steady_clock::now();
     }
 }
 
@@ -746,8 +757,12 @@ void RpcChannelImpl::sendConnectionHeader(const RpcAuth &auth) {
 void RpcChannelImpl::buildConnectionContext(
     IpcConnectionContextProto & connectionContext, const RpcAuth & auth) {
     connectionContext.set_protocol(key.getProtocol().getProtocol());
-    std::string euser = key.getAuth().getUser().getPrincipal();
+    std::string principal = key.getAuth().getUser().getPrincipal();
+    std::string euser = key.getAuth().getUser().getEffectiveUser();
     std::string ruser = key.getAuth().getUser().getRealUser();
+
+    if (!euser.empty())
+        user->set_effectiveuser(euser);
 
     if (auth.getMethod() != AuthMethod::TOKEN) {
         UserInformationProto * user = connectionContext.mutable_userinfo();
@@ -924,14 +939,13 @@ void RpcChannelImpl::readOneResponse(bool writeLock) {
         return;
     }
     bodySize = in->readVarint32(readTimeout);
-
     if (bodySize > 0) {
         body.resize(bodySize);
         in->readFully(&body[0], bodySize, readTimeout);
     }
     if (saslClient && (saslClient->isPrivate() || saslClient->isIntegrity()) && saslComplete) {
 
-        if (curRespHeader.callid() != AuthProtocol::SASL) {
+        if (curRespHeader.callid() != (unsigned)AuthProtocol::SASL) {
             THROW(HdfsRpcException,
                   "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel expected SASL wrapped message.",
                   key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
@@ -978,20 +992,23 @@ void RpcChannelImpl::readOneResponse(bool writeLock) {
                   key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
         }
 
-        ret = stream.ReadVarint32(&bodySize);
-        if (!ret) {
-            THROW(HdfsRpcException,
-                  "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel cannot parse wrapped body size.",
-                  key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
-        }
-        if (bodySize > 0) {
-            body.resize(bodySize);
-            ret = stream.ReadRaw(&body[0], bodySize);
+        status = curRespHeader.status();
+        if (RpcResponseHeaderProto_RpcStatusProto_SUCCESS == status) {
+            ret = stream.ReadVarint32(&bodySize);
             if (!ret) {
                 THROW(HdfsRpcException,
-                      "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel cannot parse wrapped body.",
+                      "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel cannot parse wrapped body size.",
                       key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
             }
+            if (bodySize > 0) {
+                body.resize(bodySize);
+                ret = stream.ReadRaw(&body[0], bodySize);
+                if (!ret) {
+                    THROW(HdfsRpcException,
+                          "RPC channel to \"%s:%s\" got protocol mismatch: RPC channel cannot parse wrapped body.",
+                          key.getServer().getHost().c_str(), key.getServer().getPort().c_str())
+                }
+            }               
         }
     }
 

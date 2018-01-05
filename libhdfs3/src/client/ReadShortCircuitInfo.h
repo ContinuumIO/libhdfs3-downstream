@@ -31,6 +31,7 @@
 #include "server/BlockLocalPathInfo.h"
 #include "server/DatanodeInfo.h"
 #include "server/ExtendedBlock.h"
+#include "server/EncryptionKey.h"
 #include "SessionConfig.h"
 #include "Thread.h"
 #include "Token.h"
@@ -151,7 +152,8 @@ class ReadShortCircuitInfoBuilder {
   ReadShortCircuitInfoBuilder(const DatanodeInfo& dnInfo, const RpcAuth& auth,
                               const SessionConfig& conf);
   shared_ptr<ReadShortCircuitInfo> fetchOrCreate(const ExtendedBlock& block,
-                                                 const Token token);
+                                                 const Token,
+                                                 EncryptionKey& ekey);
   static void release(const ReadShortCircuitInfo& info);
 
  private:
@@ -162,7 +164,7 @@ class ReadShortCircuitInfoBuilder {
       const ReadShortCircuitInfoKey& key, const BlockLocalPathInfo& info);
   shared_ptr<ReadShortCircuitInfo> createReadShortCircuitInfo(
       const ReadShortCircuitInfoKey& key, const ExtendedBlock& block,
-      const Token& token);
+      const Token& token, EncryptionKey& ekey);
   shared_ptr<ReadShortCircuitInfo> createReadShortCircuitInfo(
       const ReadShortCircuitInfoKey& key,
       const shared_ptr<ReadShortCircuitFDHolder>& fds);

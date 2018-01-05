@@ -30,6 +30,7 @@
 #include "EncryptionZoneInfo.h"
 #include "Permission.h"
 #include "XmlConfig.h"
+#include "server/EncryptionKey.h"
 
 #include <vector>
 
@@ -46,6 +47,8 @@ public:
      * @param conf hdfs configuration
      */
     FileSystem(const Config & conf);
+    
+    FileSystem(const Config & conf, const char * effective_user);
 
     /**
      * Copy construct of FileSystem
@@ -67,6 +70,10 @@ public:
      */
     void connect();
 
+    // TODO
+    std::string effective_user;
+
+
     /**
      * Connect to hdfs
      * @param uri hdfs connection uri, hdfs://host:port
@@ -86,6 +93,8 @@ public:
      * disconnect from hdfs
      */
     void disconnect();
+
+    Internal::EncryptionKey getEncryptionKeys();
 
     /**
      * To get default number of replication.

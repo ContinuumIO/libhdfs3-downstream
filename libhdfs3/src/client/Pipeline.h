@@ -34,6 +34,7 @@
 #include "server/Namenode.h"
 #include "SessionConfig.h"
 #include "Thread.h"
+#include "DataTransferProtocolSender.h"
 
 #include <vector>
 #include <deque>
@@ -124,7 +125,7 @@ public:
     /**
      * construct and setup the pipeline for append.
      */
-    PipelineImpl(bool append, const char * path, const SessionConfig & conf,
+    PipelineImpl(bool append, const char * path, SessionConfig & conf,
                  shared_ptr<FileSystemInter> filesystem, int checksumType, int chunkSize,
                  int replication, int64_t bytesSent, PacketPool & packetPool,
                  shared_ptr<LocatedBlock> lastBlock);
@@ -166,7 +167,7 @@ private:
     static void checkBadLinkFormat(const std::string & node);
 
 private:
-    const SessionConfig & config;
+    SessionConfig & config;
     BlockConstructionStage stage;
     bool canAddDatanode;
     bool canAddDatanodeBest;
@@ -182,6 +183,7 @@ private:
     int64_t bytesSent; //the size of bytes has sent.
     PacketPool & packetPool;
     shared_ptr<BufferedSocketReader> reader;
+    shared_ptr<DataTransferProtocolSender> sender;
     shared_ptr<FileSystemInter> filesystem;
     shared_ptr<LocatedBlock> lastBlock;
     shared_ptr<Socket> sock;
