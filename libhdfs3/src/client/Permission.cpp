@@ -30,7 +30,7 @@ Permission::Permission(uint16_t mode) {
 	uint16_t fileEncryptionBit = (1 << 13);
 	bool isFileEncryption = (((mode & fileEncryptionBit) != 0) ? true : false);
 
-    if (!isFileEncryption && mode >> 10) {
+    if (!isFileEncryption && mode >> 14) {
         THROW(InvalidParameter,
               "Invalid parameter: cannot convert %u to \"Permission\"",
               static_cast<unsigned int>(mode));
