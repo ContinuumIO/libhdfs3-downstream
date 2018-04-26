@@ -82,6 +82,8 @@ SessionConfig::SessionConfig(const Config & conf) {
         }, {
             &encryptedDatanode, "dfs.encrypt.data.transfer", false
         }, {
+            &enableVerify, "input.read.default.verify", true
+        }, {
             &secureDatanode, "dfs.block.access.token.enable", false        }
     };
     ConfigDefault<int32_t> i32Values[] = {
