@@ -31,6 +31,7 @@
 #include "Permission.h"
 #include "XmlConfig.h"
 #include "server/EncryptionKey.h"
+#include "common/SessionConfig.h"
 
 #include <vector>
 
@@ -324,6 +325,11 @@ public:
     */
     std::vector<EncryptionZoneInfo> listAllEncryptionZoneItems();
 
+
+    /*
+     * get session configuration
+     */
+    Internal::SessionConfig & getConf();
 
 private:
     Config conf;

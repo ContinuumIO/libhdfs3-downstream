@@ -668,7 +668,9 @@ hdfsFile hdfsOpenFile(hdfsFS fs, const char * path, int flags, int bufferSize,
         } else {
             file->setInput(true);
             is = new InputStream;
-            is->open(fs->getFilesystem(), path, true);
+            shared_ptr<Hdfs::Internal::SessionConfig> conf;
+            conf = shared_ptr < Hdfs::Internal::SessionConfig > (new Hdfs::Internal::SessionConfig(fs->getFilesystem().getConf()));
+            is->open(fs->getFilesystem(), path, conf->getEnableVerify());
             file->setStream(is);
         }
 
