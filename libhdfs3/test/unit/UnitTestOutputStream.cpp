@@ -119,7 +119,7 @@ static void heartBeatSender(int flag) {
     fileinfo.setBlocksize(2048);
     fileinfo.setLength(1024);
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     shared_ptr<LocatedBlock> lastBlock(new LocatedBlock);
     lastBlock->setNumBytes(0);
     std::pair<shared_ptr<LocatedBlock>, shared_ptr<FileStatus> > lastBlockWithStatus;
@@ -161,7 +161,7 @@ static void heartBeatSenderThrow(int flag) {
     fileinfo.setBlocksize(2048);
     fileinfo.setLength(1024);
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     shared_ptr<LocatedBlock> lastBlock(new LocatedBlock);
     HdfsIOException e("test", "test", 3, "test");
     lastBlock->setNumBytes(0);
@@ -222,7 +222,7 @@ TEST_F(TestOutputStream, DISABLED_openForCreate_Success) {
     OutputStreamImpl ous;
     MockFileSystemInter * fs = new MockFileSystemInter;
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     EXPECT_CALL(*fs, getStandardPath(_)).Times(1).WillOnce(Return("/testopen"));
     EXPECT_CALL(*fs, getConf()).Times(1).WillOnce(ReturnRef(sessionConf));
     EXPECT_CALL(*fs, create(_, _, _, _, _, _)).Times(1);
@@ -237,7 +237,7 @@ TEST_F(TestOutputStream, DISABLED_registerForCreate_Success) {
     OutputStreamImpl ous;
     MockFileSystemInter * fs = new MockFileSystemInter;
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     EXPECT_CALL(*fs, getStandardPath(_)).Times(1).WillOnce(Return("/testregiester"));
     EXPECT_CALL(*fs, getConf()).Times(1).WillOnce(ReturnRef(sessionConf));
     EXPECT_CALL(*fs, create(_, _, _, _, _, _)).Times(1);
@@ -252,7 +252,7 @@ TEST_F(TestOutputStream, registerForAppend_Success) {
     OutputStreamImpl ous;
     MockFileSystemInter * fs = new MockFileSystemInter;
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     FileStatus fileinfo;
     fileinfo.setBlocksize(2048);
     fileinfo.setLength(1024);
@@ -276,7 +276,7 @@ TEST_F(TestOutputStream, openForCreate_Fail) {
     OutputStreamImpl ous;
     MockFileSystemInter * fs = new MockFileSystemInter;
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     HdfsIOException e("test", "test", 2, "test");
     EXPECT_CALL(*fs, getStandardPath(_)).Times(1).WillOnce(Return("/testopen"));
     EXPECT_CALL(*fs, getConf()).Times(1).WillOnce(ReturnRef(sessionConf));
@@ -289,7 +289,7 @@ TEST_F(TestOutputStream, openForAppend_Success) {
     OutputStreamImpl ous;
     MockFileSystemInter * fs = new MockFileSystemInter;
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     FileStatus fileinfo;
     fileinfo.setBlocksize(2048);
     fileinfo.setLength(1024);
@@ -313,7 +313,7 @@ TEST_F(TestOutputStream, openForAppend_Fail) {
     OutputStreamImpl ous;
     MockFileSystemInter * fs = new MockFileSystemInter;
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     FileStatus fileinfo;
     fileinfo.setBlocksize(2048);
     fileinfo.setLength(1024);
@@ -334,7 +334,7 @@ TEST_F(TestOutputStream, append_Success) {
     fileinfo.setBlocksize(2048);
     fileinfo.setLength(1024);
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     shared_ptr<LocatedBlock> lastBlock(new LocatedBlock);
     lastBlock->setNumBytes(0);
     std::pair<shared_ptr<LocatedBlock>, shared_ptr<FileStatus> > lastBlockWithStatus;
@@ -424,7 +424,7 @@ TEST_F(TestOutputStream, flush_Success) {
     fileinfo.setBlocksize(2048);
     fileinfo.setLength(1024);
     Config conf;
-    const SessionConfig sessionConf(conf);
+    SessionConfig sessionConf(conf);
     shared_ptr<LocatedBlock> lastBlock(new LocatedBlock);
     HdfsIOException e("test", "test", 3, "test");
     lastBlock->setNumBytes(0);

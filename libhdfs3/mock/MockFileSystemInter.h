@@ -37,6 +37,7 @@
 #include "server/ExtendedBlock.h"
 #include "server/LocatedBlock.h"
 #include "server/LocatedBlocks.h"
+#include "server/EncryptionKey.h"
 #include "SessionConfig.h"
 
 #include <string>
@@ -91,7 +92,7 @@ public:
           const Hdfs::Internal::ExtendedBlock & newBlock,
           const std::vector<Hdfs::Internal::DatanodeInfo> & newNodes,
           const std::vector<std::string> & storageIDs));
-  MOCK_CONST_METHOD0(getConf, const Hdfs::Internal::SessionConfig &());
+  MOCK_METHOD0(getConf, Hdfs::Internal::SessionConfig &());
   MOCK_CONST_METHOD0(getUserInfo, const Hdfs::Internal::UserInfo &());
   MOCK_METHOD4(getBlockLocations, void(const std::string & src, int64_t offset, int64_t length, Hdfs::Internal::LocatedBlocks & lbs));
   MOCK_METHOD4(getListing, bool(const std::string & src, const std::string & , bool needLocation, std::vector<Hdfs::FileStatus> &));
@@ -107,6 +108,8 @@ public:
   MOCK_METHOD2(listEncryptionZones, bool(const int64_t id, std::vector<Hdfs::EncryptionZoneInfo> &));
   MOCK_METHOD0(listEncryptionZone, Hdfs::EncryptionZoneIterator());
   MOCK_METHOD0(listAllEncryptionZoneItems, std::vector<Hdfs::EncryptionZoneInfo>());
+  MOCK_METHOD0(getEncryptionKeys, Hdfs::Internal::EncryptionKey());
+
 };
 
 #endif /* _HDFS_LIBHDFS3_MOCK_MOCKSOCKET_H_ */
