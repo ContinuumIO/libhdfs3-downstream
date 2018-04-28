@@ -92,7 +92,7 @@ public:
           const Hdfs::Internal::ExtendedBlock & newBlock,
           const std::vector<Hdfs::Internal::DatanodeInfo> & newNodes,
           const std::vector<std::string> & storageIDs));
-  MOCK_CONST_METHOD0(getConf, const Hdfs::Internal::SessionConfig &());
+  MOCK_METHOD0(getConf, Hdfs::Internal::SessionConfig &());
   MOCK_CONST_METHOD0(getUserInfo, const Hdfs::Internal::UserInfo &());
   MOCK_METHOD4(getBlockLocations, void(const std::string & src, int64_t offset, int64_t length, Hdfs::Internal::LocatedBlocks & lbs));
   MOCK_METHOD4(getListing, bool(const std::string & src, const std::string & , bool needLocation, std::vector<Hdfs::FileStatus> &));
