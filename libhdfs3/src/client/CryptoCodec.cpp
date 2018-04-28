@@ -33,7 +33,7 @@ namespace Hdfs {
  * @param kcp a KmsClientProvider instance to get key from kms server.
  * @param bufSize crypto buffer size.
  */
-CryptoCodec::CryptoCodec(FileEncryptionInfo *encryptionInfo, shared_ptr<KmsClientProvider> kcp, int32_t bufSize) : encryptionInfo(encryptionInfo), kcp(kcp), bufSize(bufSize)
+CryptoCodec::CryptoCodec(FileEncryptionInfo *encryptionInfo, shared_ptr<KmsClientProvider> kcp, int32_t bufSize) : kcp(kcp), encryptionInfo(encryptionInfo), bufSize(bufSize)
 {
 
     /* Init global status. */
@@ -101,7 +101,7 @@ std::string CryptoCodec::endecInternal(const char * buffer, int64_t size, bool e
     std::string key = encryptionInfo->getKey();
     std::string iv = encryptionInfo->getIv();
     LOG(INFO,
-            "CryptoCodec : endecInternal info. key:%s, iv:%s, buffer:%s, size:%d, is_encode:%d.",
+            "CryptoCodec : endecInternal info. key:%s, iv:%s, buffer:%s, size:%ld, is_encode:%d.",
             key.c_str(), iv.c_str(), buffer, size, enc);
 	
     /* Get decrypted key from KMS */
