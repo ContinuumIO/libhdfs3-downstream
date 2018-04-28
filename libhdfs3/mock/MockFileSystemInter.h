@@ -37,6 +37,7 @@
 #include "server/ExtendedBlock.h"
 #include "server/LocatedBlock.h"
 #include "server/LocatedBlocks.h"
+#include "server/EncryptionKey.h"
 #include "SessionConfig.h"
 
 #include <string>
@@ -107,6 +108,8 @@ public:
   MOCK_METHOD2(listEncryptionZones, bool(const int64_t id, std::vector<Hdfs::EncryptionZoneInfo> &));
   MOCK_METHOD0(listEncryptionZone, Hdfs::EncryptionZoneIterator());
   MOCK_METHOD0(listAllEncryptionZoneItems, std::vector<Hdfs::EncryptionZoneInfo>());
+  MOCK_METHOD0(getEncryptionKeys, Hdfs::Internal::EncryptionKey());
+
 };
 
 #endif /* _HDFS_LIBHDFS3_MOCK_MOCKSOCKET_H_ */

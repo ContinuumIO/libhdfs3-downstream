@@ -35,7 +35,7 @@ public:
 	MOCK_METHOD1(getReplicaVisibleLength, int64_t (const Hdfs::Internal::ExtendedBlock & b));
 	MOCK_METHOD3(getBlockLocalPathInfo, void (const Hdfs::Internal::ExtendedBlock & block,
 	                 const Hdfs::Internal::Token & token, Hdfs::Internal::BlockLocalPathInfo & info));
-
+    MOCK_METHOD0(sendPing, void ());
 };
 
 }
