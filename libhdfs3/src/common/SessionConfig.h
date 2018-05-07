@@ -149,6 +149,10 @@ public:
         return maxLocalBlockInfoCacheSize;
     }
 
+    bool getEnableVerify() const {
+        return enableVerify;
+    }
+
     /*
      * OutputStream configure
      */
@@ -386,6 +390,7 @@ public:
     bool readFromLocal;
     bool notRetryAnotherNode;
     bool legacyLocalBlockReader;
+    bool enableVerify;
     int32_t inputConnTimeout;
     int32_t inputReadTimeout;
     int32_t inputWriteTimeout;

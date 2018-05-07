@@ -668,7 +668,7 @@ hdfsFile hdfsOpenFile(hdfsFS fs, const char * path, int flags, int bufferSize,
         } else {
             file->setInput(true);
             is = new InputStream;
-            is->open(fs->getFilesystem(), path, true);
+            is->open(fs->getFilesystem(), path, fs->getFilesystem().getConf().getEnableVerify());
             file->setStream(is);
         }
 

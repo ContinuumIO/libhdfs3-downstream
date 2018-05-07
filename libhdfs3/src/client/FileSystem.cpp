@@ -672,4 +672,8 @@ std::vector<EncryptionZoneInfo> FileSystem::listAllEncryptionZoneItems() {
     return impl->filesystem->listAllEncryptionZoneItems();
 }
 
+Internal::SessionConfig & FileSystem::getConf() {
+    return impl->filesystem->getConf();
+}
+
 }
